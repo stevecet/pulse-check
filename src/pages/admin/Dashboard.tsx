@@ -12,7 +12,8 @@ import {
 } from "@mui/material";
 import { Header } from "../../components/Header";
 import { useEffect, useState } from "react";
-import { supabase } from "../../../supabaseClient";
+import { componentService } from "../../services/componentService";
+import { incidentService } from "../../services/incidentService";
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -24,29 +25,22 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       setLoading(true);
 
-      const [incidentRes, componentRes] = await Promise.all([
-        supabase.from("incidents").select("*"),
-        supabase.from("components").select("*"),
-      ]);
-
-      if (incidentRes.error) {
-        console.error("Incident Error:", incidentRes.error.message);
-      } else {
-        setIncidentCount(incidentRes.data.length);
-        const activeIncidents = incidentRes.data.filter(
-          (i) => i.status === "processing",
-        );
+      try {
+        const [incidents, components] = await Promise.all([
+          incidentService.getAll(),
+          componentService.getAll(),
+        ]);
+        setIncidentCount(incidents.length);
+        const activeIncidents = incidents.filter((i) => i.status === "processing");
         setActiveIncidentCount(activeIncidents.length);
-      }
 
-      if (componentRes.error) {
-        console.error("Updates Error:", componentRes.error.message);
-      } else {
-        setComponentCount(componentRes.data?.length);
-        const operationalComponents = componentRes.data.filter(
+        setComponentCount(components.length);
+        const operationalComponents = components.filter(
           (i) => i.status === "operational",
         );
         setOperationalComponentCount(operationalComponents.length);
+      } catch (error) {
+        console.error("Dashboard Error:", error);
       }
       setLoading(false);
     };

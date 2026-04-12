@@ -5,6 +5,7 @@ import {
   Box,
   AppBar,
   Avatar,
+  Button,
 } from "@mui/material";
 import { Launch } from "@mui/icons-material";
 import { deepOrange } from "@mui/material/colors";
@@ -25,21 +26,17 @@ export default function NavBar() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Steveceto
           </Typography>
-          <IconButton
-            size="medium"
-            edge="start"
-            color="inherit"
-            aria-label="menu"
+          <Button
+            variant="contained"
+            component="a"
+            href="https://github.com/stevecet/pulse-check"
+            target="_blank"
+            endIcon={<Launch />}
+            disableElevation
+            sx={{ textTransform: "none", fontSize: "20px" }}
           >
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{ flexGrow: 1, mr: 1 }}
-            >
-              GitHub
-            </Typography>
-            <Launch />
-          </IconButton>
+            GitHub
+          </Button>
         </Toolbar>
       </AppBar>
     </Box>

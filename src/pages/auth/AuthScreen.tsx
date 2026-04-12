@@ -13,10 +13,10 @@ import {
   InputLabel,
   OutlinedInput,
 } from "@mui/material";
-import { supabase } from "../../../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useAlert } from "../../hooks/useAlert";
+import { supabase } from "../../services/supabase";
 
 export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState(false);

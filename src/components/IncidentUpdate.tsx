@@ -21,11 +21,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { supabase } from "../../supabaseClient";
 import { formatDate } from "../lib/formatDate";
 import { useState } from "react";
 import type { IncidentUpdate } from "../lib/types";
 import { useAlert } from "../hooks/useAlert";
+import { supabase } from "../services/supabase";
 
 type IncidentUpdatesProps = {
   incidentId: string;

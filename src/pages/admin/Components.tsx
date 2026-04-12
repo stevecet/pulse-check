@@ -11,15 +11,29 @@ import {
   Divider,
   Chip,
   IconButton,
+  Pagination,
+  InputAdornment,
 } from "@mui/material";
-import { Add, Close, Delete, Edit } from "@mui/icons-material";
+import { Add, Close, Delete, Edit, Search } from "@mui/icons-material";
 import { useEffect, useState } from "react";
 import { Header } from "../../components/Header";
 import type { Component, ComponentStatus } from "../../lib/types";
 import { LoadingState } from "../../components/LoadingState";
-import { supabase } from "../../../supabaseClient";
 import DeleteDialog from "../../components/DeleteDialog";
 import { useAlert } from "../../hooks/useAlert";
+import { componentService } from "../../services/componentService";
+
+type ComponentFormData = {
+  name: string;
+  description: string;
+  status: ComponentStatus;
+};
+
+const initialFormData: ComponentFormData = {
+  name: "",
+  description: "",
+  status: "operational",
+};
 
 export default function Components() {
   const { showAlert } = useAlert();
@@ -29,53 +43,47 @@ export default function Components() {
   const [submitting, setSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    status: "operational" as ComponentStatus,
-  });
+  const [editData, setEditData] = useState<Partial<Component> | null>(null);
+  const [formData, setFormData] = useState<ComponentFormData>(initialFormData);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
 
   useEffect(() => {
-    const fetchComponents = async () => {
+    const loadComponents = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("components")
-        .select("*")
-        .order("name", { ascending: true });
-
-      if (error) {
-        console.error("Error fetching:", error.message);
-      } else {
+      try {
+        const data = await componentService.getAll();
         setComponents(data);
+      } catch (error) {
+        console.error("Error fetching:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-
-    fetchComponents();
+    loadComponents();
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
-    const { data, error } = await supabase
-      .from("components")
-      .insert([formData])
-      .select()
-      .single();
-
-    if (error) {
-      showAlert("Failed to create component", "error");
-    } else {
-      showAlert("Component created successfully!", "success");
+    try {
+      const data = await componentService.create(formData);
       setComponents((prev) => [...prev, data]);
-
-      setFormData({ name: "", description: "", status: "operational" });
+      showAlert("Component created successfully!", "success");
+      setFormData(initialFormData);
       setShowForm(false);
+    } catch (error) {
+      console.error("Error creating component:", error);
+      showAlert("Failed to create component", "error");
+    } finally {
+      setSubmitting(false);
     }
-
-    setSubmitting(false);
   };
 
   const startEditing = (component: Component) => {
@@ -88,7 +96,11 @@ export default function Components() {
     setEditData(null);
   };
 
-  const handleUpdate = async (updatedFields: any) => {
+  const handleUpdate = async (updatedFields: Partial<Component> | null) => {
+    if (!updatedFields?.id) {
+      showAlert("Missing component details", "warning");
+      return;
+    }
     const { id, name, description, status } = updatedFields;
     if (!name) {
       showAlert("Name is required", "warning");
@@ -96,40 +108,57 @@ export default function Components() {
     }
     setSubmitting(true);
 
-    const { data, error } = await supabase
-      .from("components")
-      .update({ name, description, status })
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (!error && data) {
+    try {
+      const data = await componentService.update(id, {
+        name,
+        description,
+        status,
+      });
       setComponents((prev) => prev.map((c) => (c.id === data.id ? data : c)));
 
       showAlert("Component updated successfully!", "success");
       setEditingId(null);
       setEditData(null);
-    } else {
-      showAlert(error?.message || "An error occurred", "error");
+    } catch (error) {
+      console.error("Error creating component:", error);
+      showAlert("An error occurred", "error");
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const handleDelete = async () => {
-    const { error } = await supabase
-      .from("components")
-      .delete()
-      .eq("id", deleteTarget);
-
-    if (error) {
+    try {
+      await componentService.delete(deleteTarget);
+      setComponents((prev) =>
+        prev.filter((component) => component.id !== deleteTarget),
+      );
+      showAlert("Component permanently deleted", "info");
+    } catch (error) {
+      console.error("Error creating component:", error);
       showAlert("Error deleting component", "error");
-      return;
     }
-    setComponents((prev) =>
-      prev.filter((component) => component.id !== deleteTarget),
-    );
-    showAlert("Component permanently deleted", "info");
+    setDeleteTarget(null);
   };
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredComponents = components.filter((component) => {
+    if (!normalizedQuery) return true;
+    return (
+      component.name.toLowerCase().includes(normalizedQuery) ||
+      (component.description ?? "").toLowerCase().includes(normalizedQuery) ||
+      component.status.toLowerCase().includes(normalizedQuery)
+    );
+  });
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredComponents.length / pageSize),
+  );
+  const paginatedComponents = filteredComponents.slice(
+    (page - 1) * pageSize,
+    page * pageSize,
+  );
 
   return (
     <Box sx={{ flexGrow: 1, px: 4 }}>
@@ -137,15 +166,45 @@ export default function Components() {
         heading="System Components"
         message="Manage services being monitored"
       />
-      <Button
-        variant={showForm ? "outlined" : "contained"}
-        color={showForm ? "error" : "primary"}
-        startIcon={showForm ? <Close /> : <Add />}
-        onClick={() => setShowForm(!showForm)}
-        sx={{ mb: 3, bgcolor: showForm ? "inherit" : "#0a1628" }}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          gap: 2,
+          justifyContent: "space-between",
+          alignItems: { xs: "stretch", sm: "center" },
+          mb: 3,
+        }}
       >
-        {showForm ? "Cancel" : "Add Component"}
-      </Button>
+        <Button
+          variant={showForm ? "outlined" : "contained"}
+          color={showForm ? "error" : "primary"}
+          startIcon={showForm ? <Close /> : <Add />}
+          onClick={() => setShowForm(!showForm)}
+          sx={{ bgcolor: showForm ? "inherit" : "#0a1628" }}
+        >
+          {showForm ? "Cancel" : "Add Component"}
+        </Button>
+
+        <TextField
+          fullWidth
+          size="small"
+          label="Search components"
+          placeholder="Search by name, description, or status"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ maxWidth: 520 }}
+        />
+      </Box>
 
       {showForm && (
         <Card
@@ -191,13 +250,16 @@ export default function Components() {
                   label="Status"
                   value={formData.status}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, status: e.target.value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      status: e.target.value as ComponentStatus,
+                    }))
                   }
                 >
                   <MenuItem value="operational">Operational</MenuItem>
-                  <MenuItem value="degraded">Degraded</MenuItem>
-                  <MenuItem value="partial_outage">Partial Outage</MenuItem>
-                  <MenuItem value="major_outage">Major Outage</MenuItem>
+                  <MenuItem value="maintenance">Maintenance</MenuItem>
+                  <MenuItem value="incident">Incident</MenuItem>
+                  <MenuItem value="outage">Outage</MenuItem>
                 </TextField>
 
                 <Button
@@ -218,14 +280,21 @@ export default function Components() {
           <LoadingState message="Loading components..." />
         ) : (
           <>
-            {components.length === 0 ? (
+            {components.length === 0 && (
               <Card variant="outlined" sx={{ py: 6, textAlign: "center" }}>
                 <Typography color="text.secondary">
                   No components yet. Create one to get started.
                 </Typography>
               </Card>
+            )}
+            {filteredComponents.length === 0 ? (
+              <Card variant="outlined" sx={{ py: 6, textAlign: "center" }}>
+                <Typography color="text.secondary">
+                  No components match your search.
+                </Typography>
+              </Card>
             ) : (
-              components.map((component) => (
+              paginatedComponents.map((component) => (
                 <Card
                   key={component.id}
                   variant="outlined"
@@ -249,12 +318,16 @@ export default function Components() {
                               size="small"
                               fullWidth
                               label="Component Name"
-                              value={editData.name}
+                              value={editData?.name ?? ""}
                               onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  name: e.target.value,
-                                })
+                                setEditData((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        name: e.target.value,
+                                      }
+                                    : prev,
+                                )
                               }
                             />
                             <TextField
@@ -262,12 +335,16 @@ export default function Components() {
                               fullWidth
                               multiline
                               label="Description"
-                              value={editData.description}
+                              value={editData?.description ?? ""}
                               onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  description: e.target.value,
-                                })
+                                setEditData((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        description: e.target.value,
+                                      }
+                                    : prev,
+                                )
                               }
                             />
                             <TextField
@@ -275,26 +352,27 @@ export default function Components() {
                               size="small"
                               label="Status"
                               sx={{ width: 200 }}
-                              value={editData.status}
+                              value={editData?.status ?? "operational"}
                               onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  status: e.target.value,
-                                })
+                                setEditData((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        status: e.target
+                                          .value as ComponentStatus,
+                                      }
+                                    : prev,
+                                )
                               }
                             >
                               <MenuItem value="operational">
                                 Operational
                               </MenuItem>
-                              <MenuItem value="partial_outage">
-                                Partial Outage
+                              <MenuItem value="maintenance">
+                                Maintenance
                               </MenuItem>
-                              <MenuItem value="major_outage">
-                                Major Outage
-                              </MenuItem>
-                              <MenuItem value="degraded">
-                                Degraded Performance
-                              </MenuItem>
+                              <MenuItem value="incident">Incident</MenuItem>
+                              <MenuItem value="outage">Outage</MenuItem>
                             </TextField>
                           </Stack>
                         ) : (
@@ -324,7 +402,6 @@ export default function Components() {
                         )}
                       </Box>
 
-                      {/* RIGHT SIDE: ACTIONS */}
                       <Stack direction="row" spacing={1}>
                         {editingId === component.id ? (
                           <>
@@ -373,6 +450,17 @@ export default function Components() {
           </>
         )}
       </Stack>
+      {!loading && filteredComponents.length > pageSize && (
+        <Stack alignItems="end" sx={{ mb: 3 }}>
+          <Pagination
+            count={totalPages}
+            page={Math.min(page, totalPages)}
+            onChange={(_event, value) => setPage(value)}
+            shape="rounded"
+            sx={{ color: "#0a1628" }}
+          />
+        </Stack>
+      )}
       <DeleteDialog
         open={Boolean(deleteTarget)}
         handleClose={() => setDeleteTarget(null)}

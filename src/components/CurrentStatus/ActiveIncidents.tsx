@@ -12,7 +12,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { supabase } from "../../../supabaseClient";
 import { useEffect, useMemo, useState } from "react";
 import { LoadingState } from "../../components/LoadingState";
 import { type Incident } from "../../lib/types";
@@ -25,25 +24,21 @@ export default function ActiveIncidents() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
 
   useEffect(() => {
-    const fetchIncidents = async () => {
+    const loadIncidents = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("incidents")
-        .select("*")
-        .order("title", { ascending: true });
-
-      if (error) {
-        console.error("Error fetching:", error.message);
-      } else {
+      try {
+        const data = await incidentService.getAll();
         const activeIncidents = data.filter(
           (c) => c.status.toLowerCase() != "resolved",
         );
         setIncidents(activeIncidents);
+      } catch (error) {
+        console.error("Error fetching:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-
-    fetchIncidents();
+    loadIncidents();
   }, []);
 
   const filteredIncidents = useMemo(() => {

@@ -15,6 +15,7 @@ import Typography from "@mui/material/Typography";
 import { Button, Stack } from "@mui/material";
 import { Add, BarChart, BugReport, Dashboard } from "@mui/icons-material";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "../services/supabase";
 
 const drawerWidth = 240;
 
@@ -108,10 +109,22 @@ export default function ResponsiveDrawer() {
           variant="outlined"
           fullWidth
           sx={{ color: "#0a1628", borderColor: "gray" }}
+          onClick={() => navigate("/")}
         >
           Back to Main Dashboard
         </Button>
-        <Button variant="outlined" color="error" fullWidth>
+        <Button
+          variant="outlined"
+          color="error"
+          fullWidth
+          onClick={async () => {
+            navigate("/");
+            await supabase.auth.signOut();
+
+            localStorage.clear();
+            sessionStorage.clear();
+          }}
+        >
           Sign Out
         </Button>
       </Stack>

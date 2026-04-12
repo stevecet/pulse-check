@@ -13,13 +13,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { supabase } from "../../../supabaseClient";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoadingState } from "../../components/LoadingState";
 import { Header } from "../../components/Header";
 import { type Incident } from "../../lib/types";
 import { formatDate } from "../../lib/formatDate";
+import { incidentService } from "../../services/incidentService";
 
 export default function Incident() {
   const navigate = useNavigate();
@@ -29,23 +29,18 @@ export default function Incident() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
 
   useEffect(() => {
-    const fetchIncidents = async () => {
+    const loadIncidents = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("incidents")
-        .select("*")
-        .order("title", { ascending: true });
-
-      if (error) {
-        console.error("Error fetching:", error.message);
-      } else {
+      try {
+        const data = await incidentService.getAll();
         setIncidents(data);
+      } catch (error) {
+        console.error("Error fetching:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-
-    fetchIncidents();
-
+    loadIncidents();
   }, []);
 
   const filteredIncidents = useMemo(() => {

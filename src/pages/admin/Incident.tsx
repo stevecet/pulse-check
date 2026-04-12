@@ -9,17 +9,18 @@ import {
   Chip,
   IconButton,
   InputAdornment,
+  Pagination,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import { supabase } from "../../../supabaseClient";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoadingState } from "../../components/LoadingState";
 import { Header } from "../../components/Header";
 import { type Incident } from "../../lib/types";
 import { formatDate } from "../../lib/formatDate";
+import { incidentService } from "../../services/incidentService";
 
 export default function Incident() {
   const navigate = useNavigate();
@@ -27,19 +28,18 @@ export default function Incident() {
   const [selectedButton, setSelectedButton] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
 
   useEffect(() => {
     const fetchIncidents = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("incidents")
-        .select("*")
-        .order("title", { ascending: true });
-
-      if (error) {
-        console.error("Error fetching:", error.message);
-      } else {
-        setIncidents(data);
+      try {
+        const data = await incidentService.getAll();
+        const sorted = [...data].sort((a, b) => a.title.localeCompare(b.title));
+        setIncidents(sorted);
+      } catch (error) {
+        console.error("Error fetching:", error);
       }
       setLoading(false);
     };
@@ -47,22 +47,30 @@ export default function Incident() {
     fetchIncidents();
   }, []);
 
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+
   const filteredIncidents = useMemo(() => {
     return incidents.filter((incident) => {
       const matchesFilter =
         selectedButton === "all" ||
         incident.status.toLowerCase() === selectedButton.toLowerCase();
 
-      const searchLower = searchQuery.toLowerCase();
       const matchesSearch =
-        incident.title.toLowerCase().includes(searchLower) ||
-        incident.description.toLowerCase().includes(searchLower) ||
-        incident.status.toLowerCase().includes(searchLower) ||
-        incident.severity.toLowerCase().includes(searchLower);
+        incident.title.toLowerCase().includes(normalizedSearchQuery) ||
+        incident.description.toLowerCase().includes(normalizedSearchQuery) ||
+        incident.status.toLowerCase().includes(normalizedSearchQuery) ||
+        incident.severity.toLowerCase().includes(normalizedSearchQuery);
 
       return matchesFilter && matchesSearch;
     });
-  }, [incidents, selectedButton, searchQuery]);
+  }, [incidents, selectedButton, normalizedSearchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredIncidents.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedIncidents = filteredIncidents.slice(
+    (currentPage - 1) * pageSize,
+    page * pageSize,
+  );
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -165,7 +173,7 @@ export default function Incident() {
               <Typography color="text.secondary">No incidents found</Typography>
             </Card>
           ) : (
-            filteredIncidents.map((incident) => (
+            paginatedIncidents.map((incident) => (
               <Card
                 key={incident.id}
                 variant="outlined"
@@ -238,6 +246,17 @@ export default function Incident() {
               </Card>
             ))
           )}
+        </Stack>
+      )}
+      {!loading && filteredIncidents.length > pageSize && (
+        <Stack alignItems="end" sx={{ mb: 3 }}>
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={(_event, value) => setPage(value)}
+            shape="rounded"
+            sx={{ color: "#0a1628"}}
+          />
         </Stack>
       )}
     </Box>

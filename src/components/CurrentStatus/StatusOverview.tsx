@@ -9,9 +9,9 @@ import {
 } from "@mui/icons-material";
 import { StatusCard } from "../StatusCard";
 import { EventCard } from "../EventCard";
-import { supabase } from "../../../supabaseClient";
 import type { Component } from "../../lib/types";
 import { LoadingState } from "../LoadingState";
+import { componentService } from "../../services/componentService";
 
 export default function StatusOverview() {
   const [search, setSearch] = useState("");
@@ -27,22 +27,18 @@ export default function StatusOverview() {
   );
 
   useEffect(() => {
-    const fetchComponents = async () => {
+    const loadComponents = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("components")
-        .select("*")
-        .order("name", { ascending: true });
-
-      if (error) {
-        console.error("Error fetching:", error.message);
-      } else {
+      try {
+        const data = await componentService.getAll();
         setComponents(data);
+      } catch (error) {
+        console.error("Error fetching:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-
-    fetchComponents();
+    loadComponents();
   }, []);
 
   return (
@@ -50,7 +46,9 @@ export default function StatusOverview() {
       <Typography variant="h6" gutterBottom>
         All Events
       </Typography>
-      {events.length === 0 ? (
+      {loading ? (
+        <LoadingState message="Loading events" />
+      ) : events.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 4 }}>
           <Box
             component="span"

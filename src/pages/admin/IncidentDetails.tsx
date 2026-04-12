@@ -29,7 +29,6 @@ import {
   Send,
 } from "@mui/icons-material";
 import { useEffect, useState } from "react";
-import { supabase } from "../../../supabaseClient";
 import { LoadingState } from "../../components/LoadingState";
 import type {
   Component,
@@ -51,6 +50,8 @@ import {
 import DeleteDialog from "../../components/DeleteDialog";
 import { formatDate } from "../../lib/formatDate";
 import { useAlert } from "../../hooks/useAlert";
+import { componentService } from "../../services/componentService";
+import { incidentService } from "../../services/incidentService";
 
 type EditableIncident = Omit<Incident, "incident_components"> & {
   incident_components: Component[];
@@ -145,48 +146,23 @@ export default function IncidentDetail() {
     const fetchData = async () => {
       setLoading(true);
 
-      const [incidentRes, updatesRes, componentsRes] = await Promise.all([
-        supabase
-          .from("incidents")
-          .select(
-            `
-              *,
-              incident_components (
-                component:components (*)
-              )
-            `,
-          )
-          .eq("id", id)
-          .single(),
+      try {
+        const [incidentData, updatesData, componentsData] = await Promise.all([
+          id ? incidentService.getByIdWithComponents(id) : Promise.resolve(null),
+          id ? incidentService.getUpdates(id) : Promise.resolve([]),
+          componentService.getAll(),
+        ]);
 
-        supabase
-          .from("incident_updates")
-          .select("*")
-          .eq("incident_id", id)
-          .order("created_at", { ascending: false }),
-
-        supabase
-          .from("components")
-          .select("*")
-          .order("name", { ascending: true }),
-      ]);
-
-      if (incidentRes.error) {
-        console.error("Incident Error:", incidentRes.error.message);
-      } else {
-        setIncident(incidentRes.data as IncidentWithRelations);
-      }
-
-      if (updatesRes.error) {
-        console.error("Updates Error:", updatesRes.error.message);
-      } else {
-        setUpdates(updatesRes.data);
-      }
-
-      if (componentsRes.error) {
-        console.error("Updates Error:", componentsRes.error.message);
-      } else {
-        setComponents(componentsRes.data);
+        if (incidentData) {
+          setIncident(incidentData as IncidentWithRelations);
+        }
+        setUpdates(updatesData);
+        const sortedComponents = [...componentsData].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        );
+        setComponents(sortedComponents);
+      } catch (error) {
+        console.error("Incident Error:", error);
       }
 
       setLoading(false);
@@ -198,40 +174,38 @@ export default function IncidentDetail() {
   const handleAddUpdate = async () => {
     if (!newUpdate.trim()) return;
 
-    const { data, error } = await supabase
-      .from("incident_updates")
-      .insert([{ incident_id: id, message: newUpdate }])
-      .select()
-      .single();
+    if (!id) return;
 
-    if (!error) {
+    try {
+      const data = await incidentService.addUpdate(id, newUpdate);
       setUpdates([data, ...updates]);
       setNewUpdate("");
       showAlert("Update posted!", "success");
+    } catch (error) {
+      console.error("Error while posting update:", error);
+      showAlert("Failed to post update", "error");
     }
   };
 
   const handleDelete = async () => {
-    const { error } = await supabase
-      .from("incidents")
-      .delete()
-      .eq("id", deleteTarget);
-
-    if (error) {
-      showAlert("Error deleting component", "error");
-      return;
+    if (!deleteTarget) return;
+    try {
+      await incidentService.delete(deleteTarget);
+      navigate("/admin/incidents");
+    } catch (error) {
+      console.error("Error while unlinking component:", error);
+      showAlert("Error unlinking component", "error");
     }
-    navigate("/admin/incidents");
   };
 
   const handleDeleteUpdate = async (updateId: string) => {
-    const { error } = await supabase
-      .from("incident_updates")
-      .delete()
-      .eq("id", updateId);
-    if (!error) {
+    try {
+      await incidentService.deleteUpdate(updateId);
       setUpdates((prev) => prev.filter((u) => u.id !== updateId));
       showAlert("Update deleted!", "info");
+    } catch (error) {
+      console.error("Error while deleting update:", error);
+      showAlert("Failed to delete update", "error");
     }
   };
 
@@ -265,48 +239,43 @@ export default function IncidentDetail() {
 
     const { id, incident_components, ...payload } = updatedFields;
 
-    const { data: updatedIncident, error: incidentError } = await supabase
-      .from("incidents")
-      .update(payload)
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (incidentError) {
-      showAlert(incidentError.message, "error");
+    let updatedIncident: Incident;
+    try {
+      updatedIncident = await incidentService.update(id, payload as Incident);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update incident";
+      showAlert(message, "error");
       setSubmitting(false);
       return;
     }
-    const { error: deleteError } = await supabase
-      .from("incident_components")
-      .delete()
-      .eq("incident_id", id);
 
-    if (!deleteError && incident_components.length > 0) {
-      const junctionData = incident_components.map((component) => ({
-        incident_id: id,
-        component_id: component.id,
-      }));
-
-      const { error: junctionError } = await supabase
-        .from("incident_components")
-        .insert(junctionData);
-
-      if (junctionError) {
-        showAlert("Incident saved, but components failed to sync", "warning");
+    try {
+      await incidentService.removeComponents(id);
+      if (incident_components.length > 0) {
+        await incidentService.addComponents(
+          id,
+          incident_components.map((component) => component.id),
+        );
       }
+    } catch (error) {
+      console.error("Error while syncing components:", error);
+      showAlert("Incident saved, but components failed to sync", "warning");
     }
 
     if (changedMessages.length > 0) {
-      const { data: insertedUpdates, error: updatesError } = await supabase
-        .from("incident_updates")
-        .insert(changedMessages.map((message) => ({ incident_id: id, message })))
-        .select();
-
-      if (updatesError) {
-        showAlert("Incident updated, but change log could not be recorded", "warning");
-      } else if (insertedUpdates) {
+      try {
+        const insertedUpdates = await incidentService.addUpdates(
+          id,
+          changedMessages,
+        );
         setUpdates((prev) => [...insertedUpdates, ...prev]);
+      } catch (error) {
+        console.error("Error while adding change log updates:", error);
+        showAlert(
+          "Incident updated, but change log could not be recorded",
+          "warning",
+        );
       }
     }
 

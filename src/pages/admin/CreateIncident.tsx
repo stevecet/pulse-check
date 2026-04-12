@@ -20,7 +20,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Component, IncidentStatus, SeverityLevel } from "../../lib/types";
 import { Header } from "../../components/Header";
-import { supabase } from "../../../supabaseClient";
+import { supabase } from "../../services/supabase";
 import { LoadingState } from "../../components/LoadingState";
 import { useAlert } from "../../hooks/useAlert";
 
@@ -53,22 +53,18 @@ export default function CreateIncident() {
     useState<CreateIncidentFormData>(initialFormData);
 
   useEffect(() => {
-    const fetchComponents = async () => {
+    const loadComponents = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("components")
-        .select("*")
-        .order("name", { ascending: true });
-
-      if (error) {
-        console.error("Error fetching:", error.message);
-      } else {
+      try {
+        const data = await componentService.getAll();
         setComponents(data);
+      } catch (error) {
+        console.error("Error fetching:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-
-    fetchComponents();
+    loadComponents();
   }, []);
 
   const handleSubmit = async (e: React.SubmitEvent) => {
