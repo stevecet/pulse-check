@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [historySubTab, setHistorySubTab] = useState("1");
 
   const handleMainChange = (event: React.SyntheticEvent, newValue: string) => {
+    event.preventDefault();
     setMainTab(newValue);
   };
 
@@ -18,6 +19,7 @@ export default function Dashboard() {
     event: React.SyntheticEvent,
     newValue: string,
   ) => {
+    event.preventDefault();
     setCurrentSubTab(newValue);
   };
 
@@ -25,6 +27,7 @@ export default function Dashboard() {
     event: React.SyntheticEvent,
     newValue: string,
   ) => {
+    event.preventDefault();
     setHistorySubTab(newValue);
   };
   return (

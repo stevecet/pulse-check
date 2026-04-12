@@ -24,6 +24,24 @@ import { supabase } from "../../../supabaseClient";
 import { LoadingState } from "../../components/LoadingState";
 import { useAlert } from "../../hooks/useAlert";
 
+type CreateIncidentFormData = {
+  title: string;
+  description: string;
+  status: IncidentStatus;
+  severity: SeverityLevel;
+  impact_estimate: string;
+  components: string[];
+};
+
+const initialFormData: CreateIncidentFormData = {
+  title: "",
+  description: "",
+  status: "identified",
+  severity: "medium",
+  impact_estimate: "",
+  components: [],
+};
+
 export default function CreateIncident() {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
@@ -31,14 +49,8 @@ export default function CreateIncident() {
   const [submitting, setSubmitting] = useState(false);
   const [components, setComponents] = useState<Component[]>([]);
 
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    status: "identified" as const,
-    severity: "medium" as const,
-    impact_estimate: "",
-    components: [] as string[],
-  });
+  const [formData, setFormData] =
+    useState<CreateIncidentFormData>(initialFormData);
 
   useEffect(() => {
     const fetchComponents = async () => {
@@ -100,14 +112,7 @@ export default function CreateIncident() {
       showAlert("Incident created successfully!", "success");
     }
 
-    setFormData({
-      title: "",
-      description: "",
-      status: "identified" as const,
-      severity: "medium" as const,
-      impact_estimate: "",
-      components: [] as string[],
-    });
+    setFormData(initialFormData);
     setSubmitting(false);
   };
 

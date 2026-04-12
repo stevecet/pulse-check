@@ -24,10 +24,16 @@ import {
 import { supabase } from "../../supabaseClient";
 import { formatDate } from "../lib/formatDate";
 import { useState } from "react";
-import { useAlert } from "../context/AlertContext";
 import type { IncidentUpdate } from "../lib/types";
+import { useAlert } from "../hooks/useAlert";
 
-export default function IncidentUpdates() {
+type IncidentUpdatesProps = {
+  incidentId: string;
+};
+
+export default function IncidentUpdates({
+  incidentId,
+}: Readonly<IncidentUpdatesProps>) {
   const { showAlert } = useAlert();
   const [newUpdate, setNewUpdate] = useState("");
   const [updates, setUpdates] = useState<IncidentUpdate[]>([]);
@@ -37,7 +43,7 @@ export default function IncidentUpdates() {
 
     const { data, error } = await supabase
       .from("incident_updates")
-      .insert([{ incident_id: id, message: newUpdate }])
+      .insert([{ incident_id: incidentId, message: newUpdate }])
       .select()
       .single();
 
@@ -76,6 +82,7 @@ export default function IncidentUpdates() {
               variant="contained"
               sx={{ bgcolor: "#0a1628" }}
               onClick={handleAddUpdate}
+              disabled={!incidentId}
               startIcon={<Send />}
             >
               Post
