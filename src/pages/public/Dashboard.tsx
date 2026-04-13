@@ -11,26 +11,24 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import * as React from "react";
+import { useMemo, useState } from "react";
 import { SubTabs } from "../../components/SubTabs";
 import { Cached } from "@mui/icons-material";
 import StatusOverview from "../../components/CurrentStatus/StatusOverview";
 import ActiveIncidents from "../../components/CurrentStatus/ActiveIncidents";
 import { useNavigate } from "react-router-dom";
-import { componentService } from "../../services/componentService";
-import { incidentService } from "../../services/incidentService";
-import type { Component, Incident } from "../../lib/types";
 import { useAlert } from "../../hooks/useAlert";
+import { useData } from "../../hooks/useData";
+import { type Incident, type Component } from "../../lib/types";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { incidents, components, loading: refreshing, refreshAll } = useData();
   const [mainTab, setMainTab] = useState("1");
   const [currentSubTab, setCurrentSubTab] = useState("1");
   const [historySubTab, setHistorySubTab] = useState("1");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [components, setComponents] = useState<Component[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
   const { showAlert } = useAlert();
 
   const handleMainChange = (event: React.SyntheticEvent, newValue: string) => {
@@ -39,48 +37,25 @@ export default function Dashboard() {
   };
 
   const handleCurrentSubChange = (
-    event: React.SyntheticEvent,
+    _event: React.SyntheticEvent,
     newValue: string,
   ) => {
-    event.preventDefault();
     setCurrentSubTab(newValue);
   };
 
   const handleHistorySubChange = (
-    event: React.SyntheticEvent,
+    _event: React.SyntheticEvent,
     newValue: string,
   ) => {
-    event.preventDefault();
     setHistorySubTab(newValue);
   };
 
-  const fetchSummary = async () => {
-    setRefreshing(true);
-    try {
-      const [incidentData, componentData] = await Promise.all([
-        incidentService.getAll(),
-        componentService.getAll(),
-      ]);
-      setIncidents(incidentData);
-      setComponents(componentData);
-    } catch (error) {
-      console.error("Dashboard refresh error:", error);
-    } finally {
-      setRefreshing(false);
-      showAlert("Dashboard refreshed successfully", "success");
-    }
-  };
-
-  useEffect(() => {
-    fetchSummary();
-  }, []);
-
   const showAllOperational = useMemo(() => {
     const activeIncidents = incidents.filter(
-      (incident) => incident.status !== "resolved",
+      (incident: Incident) => incident.status !== "resolved",
     );
     const allOperational = components.every(
-      (component) => component.status === "operational",
+      (component: Component) => component.status === "operational",
     );
     return activeIncidents.length === 0 && allOperational;
   }, [incidents, components]);
@@ -116,6 +91,7 @@ export default function Dashboard() {
       operationalComponentsCount,
     ],
   );
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ py: 4 }}>
@@ -138,9 +114,10 @@ export default function Dashboard() {
             <Box gap={2} sx={{ display: "flex" }}>
               <IconButton
                 aria-label="refresh"
-                onClick={() => {
+                onClick={async () => {
                   setRefreshKey((prev) => prev + 1);
-                  fetchSummary();
+                  await refreshAll();
+                  showAlert("Dashboard refreshed successfully", "success");
                 }}
                 disabled={refreshing}
               >

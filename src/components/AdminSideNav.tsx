@@ -15,8 +15,8 @@ import Typography from "@mui/material/Typography";
 import { Button, Stack } from "@mui/material";
 import { Add, BarChart, BugReport, Dashboard } from "@mui/icons-material";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "../services/supabase";
 import { useAuth } from "../hooks/useAuth";
+import { authService } from "../services/authService";
 
 const drawerWidth = 240;
 
@@ -117,11 +117,9 @@ export default function ResponsiveDrawer() {
           color="error"
           fullWidth
           onClick={async () => {
+            await authService.signOut();
             navigate("/");
-            await supabase.auth.signOut();
-
-            localStorage.clear();
-            sessionStorage.clear();
+            navigate(0);
           }}
         >
           Sign Out

@@ -12,37 +12,23 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
-import { LoadingState } from "../../components/LoadingState";
+import { useMemo, useState } from "react";
+import { useData } from "../../hooks/useData";
 import { type Incident } from "../../lib/types";
 import { formatDate } from "../../lib/formatDate";
-
+import { LoadingState } from "../LoadingState";
 export default function ActiveIncidents() {
-  const [loading, setLoading] = useState(false);
+  const { incidents, loading } = useData();
   const [selectedButton, setSelectedButton] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [incidents, setIncidents] = useState<Incident[]>([]);
 
-  useEffect(() => {
-    const loadIncidents = async () => {
-      setLoading(true);
-      try {
-        const data = await incidentService.getAll();
-        const activeIncidents = data.filter(
-          (c) => c.status.toLowerCase() != "resolved",
-        );
-        setIncidents(activeIncidents);
-      } catch (error) {
-        console.error("Error fetching:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadIncidents();
-  }, []);
+  const activeIncidents = useMemo(() => {
+    return incidents.filter((c: Incident) => c.status.toLowerCase() !== "resolved");
+  }, [incidents]);
+
 
   const filteredIncidents = useMemo(() => {
-    return incidents.filter((incident) => {
+    return activeIncidents.filter((incident: Incident) => {
       const matchesFilter =
         selectedButton === "all" ||
         incident.status.toLowerCase() === selectedButton.toLowerCase();

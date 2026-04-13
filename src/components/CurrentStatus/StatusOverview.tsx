@@ -1,45 +1,28 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Box, Typography, Divider, TextField, Grid } from "@mui/material";
 import {
   CheckCircle,
-  Error,
+  Error as ErrorIcon,
   Handyman,
   TravelExplore,
   Warning,
 } from "@mui/icons-material";
 import { StatusCard } from "../StatusCard";
 import { EventCard } from "../EventCard";
-import type { Component } from "../../lib/types";
-import { componentService } from "../../services/componentService";
 import { LoadingState } from "../LoadingState";
+import { useData } from "../../hooks/useData";
 
 export default function StatusOverview() {
   const [search, setSearch] = useState("");
-  const [components, setComponents] = useState<Component[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const { components, loading } = useData();
 
   const filteredComponents = components.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const events = components.filter(
-    (c) => c.status.toLowerCase() != "operational",
+    (c) => c.status.toLowerCase() !== "operational",
   );
-
-  useEffect(() => {
-    const loadComponents = async () => {
-      setLoading(true);
-      try {
-        const data = await componentService.getAll();
-        setComponents(data);
-      } catch (error) {
-        console.error("Error fetching:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadComponents();
-  }, []);
 
   if (loading) {
     return <LoadingState message="Loading events" />;
@@ -113,7 +96,7 @@ export default function StatusOverview() {
             status: "Incident",
             icon: <Warning color="warning" fontSize="small" />,
           },
-          { status: "Outage", icon: <Error color="error" fontSize="small" /> },
+          { status: "Outage", icon: <ErrorIcon color="error" fontSize="small" /> },
         ].map((item) => (
           <Box
             key={item.status}

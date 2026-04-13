@@ -1,38 +1,34 @@
 import type { Component } from "../lib/types";
-import { supabase } from "./supabase";
+import { supabaseApi } from "./supabase";
 
 export const componentService = {
   async getAll() {
-    const { data, error } = await supabase.from("components").select("*");
-    if (error) throw error;
+    const { data } = await supabaseApi.get("/rest/v1/components?select=*");
     return data;
   },
 
   async create(payload: Partial<Component>) {
-    const { data, error } = await supabase
-      .from("components")
-      .insert([payload])
-      .select()
-      .single();
-    if (error) throw error;
+    const { data } = await supabaseApi.post("/rest/v1/components", [payload], {
+      headers: {
+        Prefer: "return=representation",
+        Accept: "application/vnd.pgrst.object+json",
+      },
+    });
     return data;
   },
 
   async update(id: string, payload: Partial<Component>) {
-    const { data, error } = await supabase
-      .from("components")
-      .update(payload)
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) throw error;
+    const { data } = await supabaseApi.patch(`/rest/v1/components?id=eq.${id}`, payload, {
+      headers: {
+        Prefer: "return=representation",
+        Accept: "application/vnd.pgrst.object+json",
+      },
+    });
     return data;
   },
 
   async delete(id: string | null) {
-    const { error } = await supabase.from("components").delete().eq("id", id);
-
-    if (error) throw error;
+    await supabaseApi.delete(`/rest/v1/components?id=eq.${id}`);
     return true;
   },
 };

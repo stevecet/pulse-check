@@ -1,54 +1,47 @@
 import type { Incident } from "../lib/types";
-import { supabase } from "./supabase";
+import { supabaseApi } from "./supabase";
 
 export const incidentService = {
   async getAll() {
-    const { data, error } = await supabase.from("incidents").select("*");
-    if (error) throw error;
+    const { data } = await supabaseApi.get("/rest/v1/incidents?select=*");
     return data;
   },
 
   async getByIdWithComponents(id: string) {
-    const { data, error } = await supabase
-      .from("incidents")
-      .select(
-        `
-          *,
-          incident_components (
-            component:components (*)
-          )
-        `,
-      )
-      .eq("id", id)
-      .single();
-    if (error) throw error;
+    const selectStr = "*,incident_components(component:components(*))";
+    const { data } = await supabaseApi.get(
+      `/rest/v1/incidents?id=eq.${id}&select=${encodeURIComponent(selectStr)}`,
+      {
+        headers: {
+          Accept: "application/vnd.pgrst.object+json",
+        },
+      },
+    );
     return data;
   },
 
   async create(payload: Incident) {
-    const { data, error } = await supabase
-      .from("incidents")
-      .insert([payload])
-      .select()
-      .single();
-    if (error) throw error;
+    const { data } = await supabaseApi.post("/rest/v1/incidents", [payload], {
+      headers: {
+        Prefer: "return=representation",
+        Accept: "application/vnd.pgrst.object+json",
+      },
+    });
     return data;
   },
 
   async update(id: string, payload: Incident) {
-    const { data, error } = await supabase
-      .from("incidents")
-      .update(payload)
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) throw error;
+    const { data } = await supabaseApi.patch(`/rest/v1/incidents?id=eq.${id}`, payload, {
+      headers: {
+        Prefer: "return=representation",
+        Accept: "application/vnd.pgrst.object+json",
+      },
+    });
     return data;
   },
 
   async delete(id: string) {
-    const { error } = await supabase.from("incidents").delete().eq("id", id);
-    if (error) throw error;
+    await supabaseApi.delete(`/rest/v1/incidents?id=eq.${id}`);
     return true;
   },
 
@@ -58,59 +51,56 @@ export const incidentService = {
       incident_id: incidentId,
       component_id: componentId,
     }));
-    const { data, error } = await supabase
-      .from("incident_components")
-      .insert(payload)
-      .select();
-    if (error) throw error;
+    const { data } = await supabaseApi.post("/rest/v1/incident_components", payload, {
+      headers: {
+        Prefer: "return=representation",
+      },
+    });
     return data;
   },
 
   async removeComponents(incidentId: string) {
-    const { error } = await supabase
-      .from("incident_components")
-      .delete()
-      .eq("incident_id", incidentId);
-    if (error) throw error;
+    await supabaseApi.delete(`/rest/v1/incident_components?incident_id=eq.${incidentId}`);
     return true;
   },
 
   async getUpdates(incidentId: string) {
-    const { data, error } = await supabase
-      .from("incident_updates")
-      .select("*")
-      .eq("incident_id", incidentId)
-      .order("created_at", { ascending: false });
-    if (error) throw error;
+    const { data } = await supabaseApi.get(
+      `/rest/v1/incident_updates?incident_id=eq.${incidentId}&order=created_at.desc`,
+    );
     return data;
   },
 
   async addUpdate(incidentId: string, message: string) {
-    const { data, error } = await supabase
-      .from("incident_updates")
-      .insert([{ incident_id: incidentId, message }])
-      .select()
-      .single();
-    if (error) throw error;
+    const { data } = await supabaseApi.post(
+      "/rest/v1/incident_updates",
+      [{ incident_id: incidentId, message }],
+      {
+        headers: {
+          Prefer: "return=representation",
+          Accept: "application/vnd.pgrst.object+json",
+        },
+      },
+    );
     return data;
   },
 
   async addUpdates(incidentId: string, messages: string[]) {
     if (messages.length === 0) return [];
-    const { data, error } = await supabase
-      .from("incident_updates")
-      .insert(messages.map((message) => ({ incident_id: incidentId, message })))
-      .select();
-    if (error) throw error;
+    const { data } = await supabaseApi.post(
+      "/rest/v1/incident_updates",
+      messages.map((message) => ({ incident_id: incidentId, message })),
+      {
+        headers: {
+          Prefer: "return=representation",
+        },
+      },
+    );
     return data;
   },
 
   async deleteUpdate(updateId: string) {
-    const { error } = await supabase
-      .from("incident_updates")
-      .delete()
-      .eq("id", updateId);
-    if (error) throw error;
+    await supabaseApi.delete(`/rest/v1/incident_updates?id=eq.${updateId}`);
     return true;
   },
 };

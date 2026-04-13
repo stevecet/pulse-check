@@ -1,3 +1,5 @@
+import * as React from "react";
+import { useState } from "react";
 import {
   Box,
   Typography,
@@ -15,13 +17,13 @@ import {
   InputAdornment,
 } from "@mui/material";
 import { Add, Close, Delete, Edit, Search } from "@mui/icons-material";
-import { useEffect, useState } from "react";
+import { useData } from "../../hooks/useData";
 import { Header } from "../../components/Header";
-import type { Component, ComponentStatus } from "../../lib/types";
+import { useAlert } from "../../hooks/useAlert";
 import { LoadingState } from "../../components/LoadingState";
 import DeleteDialog from "../../components/DeleteDialog";
-import { useAlert } from "../../hooks/useAlert";
 import { componentService } from "../../services/componentService";
+import type { Component, ComponentStatus } from "../../lib/types";
 
 type ComponentFormData = {
   name: string;
@@ -37,8 +39,7 @@ const initialFormData: ComponentFormData = {
 
 export default function Components() {
   const { showAlert } = useAlert();
-  const [components, setComponents] = useState<Component[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { components, loading, refreshComponents } = useData();
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -49,28 +50,13 @@ export default function Components() {
   const [page, setPage] = useState(1);
   const pageSize = 6;
 
-  useEffect(() => {
-    const loadComponents = async () => {
-      setLoading(true);
-      try {
-        const data = await componentService.getAll();
-        setComponents(data);
-      } catch (error) {
-        console.error("Error fetching:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadComponents();
-  }, []);
-
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
     try {
-      const data = await componentService.create(formData);
-      setComponents((prev) => [...prev, data]);
+      await componentService.create(formData);
+      await refreshComponents();
       showAlert("Component created successfully!", "success");
       setFormData(initialFormData);
       setShowForm(false);
@@ -105,12 +91,12 @@ export default function Components() {
     setSubmitting(true);
 
     try {
-      const data = await componentService.update(id, {
+      await componentService.update(id, {
         name,
         description,
         status,
       });
-      setComponents((prev) => prev.map((c) => (c.id === data.id ? data : c)));
+      await refreshComponents();
 
       showAlert("Component updated successfully!", "success");
       setEditingId(null);
@@ -126,9 +112,7 @@ export default function Components() {
   const handleDelete = async () => {
     try {
       await componentService.delete(deleteTarget);
-      setComponents((prev) =>
-        prev.filter((component) => component.id !== deleteTarget),
-      );
+      await refreshComponents();
       showAlert("Component permanently deleted", "info");
     } catch (error) {
       console.error("Error creating component:", error);

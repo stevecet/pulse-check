@@ -16,14 +16,15 @@ import {
   FormLabel,
   FormControl,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import * as React from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Component, IncidentStatus, SeverityLevel } from "../../lib/types";
+import type { IncidentStatus, SeverityLevel } from "../../lib/types";
 import { Header } from "../../components/Header";
-import { supabase } from "../../services/supabase";
 import { LoadingState } from "../../components/LoadingState";
 import { useAlert } from "../../hooks/useAlert";
-import { componentService } from "../../services/componentService";
+import { incidentService } from "../../services/incidentService";
+import { useData } from "../../hooks/useData";
 
 type CreateIncidentFormData = {
   title: string;
@@ -46,71 +47,44 @@ const initialFormData: CreateIncidentFormData = {
 export default function CreateIncident() {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
-  const [loading, setLoading] = useState(false);
+  const { components, refreshIncidents } = useData();
   const [submitting, setSubmitting] = useState(false);
-  const [components, setComponents] = useState<Component[]>([]);
 
   const [formData, setFormData] =
     useState<CreateIncidentFormData>(initialFormData);
 
-  useEffect(() => {
-    const loadComponents = async () => {
-      setLoading(true);
-      try {
-        const data = await componentService.getAll();
-        setComponents(data);
-      } catch (error) {
-        console.error("Error fetching:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadComponents();
-  }, []);
+
 
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
-    const { components, ...incidentData } = formData;
-    const { data: newIncident, error: incidentError } = await supabase
-      .from("incidents")
-      .insert([incidentData])
-      .select()
-      .single();
+    try {
+      const { components: selectedComponents, ...incidentData } = formData;
+      const newIncident = await incidentService.create(incidentData as any);
 
-    if (incidentError) {
-      showAlert(incidentError.message, "error");
-
-      setSubmitting(false);
-      return;
-    }
-
-    if (components && components.length > 0) {
-      const junctionData = components.map((compId: string) => ({
-        incident_id: newIncident.id,
-        component_id: compId,
-      }));
-
-      const { error: junctionError } = await supabase
-        .from("incident_components")
-        .insert(junctionData);
-
-      if (junctionError) {
-        console.error("Error linking components:", junctionError.message);
-        showAlert(
-          "Incident created, but components failed to link.",
-          "warning",
-        );
+      if (selectedComponents && selectedComponents.length > 0) {
+        try {
+          await incidentService.addComponents(newIncident.id, selectedComponents);
+          showAlert("Incident created successfully!", "success");
+        } catch (junctionError: any) {
+          console.error("Error linking components:", junctionError.message);
+          showAlert(
+            "Incident created, but components failed to link.",
+            "warning",
+          );
+        }
       } else {
         showAlert("Incident created successfully!", "success");
       }
-    } else {
-      showAlert("Incident created successfully!", "success");
-    }
 
-    setFormData(initialFormData);
-    setSubmitting(false);
+      await refreshIncidents();
+      setFormData(initialFormData);
+    } catch (incidentError: any) {
+      showAlert(incidentError.message || "Failed to create incident", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const toggleComponent = (componentId: string) => {
@@ -224,7 +198,7 @@ export default function CreateIncident() {
                 >
                   Affected Components
                 </FormLabel>
-                {loading ? (
+                {false ? (
                   <LoadingState message="Loading Components..." />
                 ) : (
                   <FormGroup>
@@ -233,20 +207,24 @@ export default function CreateIncident() {
                         No components available
                       </Typography>
                     ) : (
-                      components.map((component) => (
-                        <FormControlLabel
-                          key={component.id}
-                          control={
-                            <Checkbox
-                              checked={formData.components.includes(
-                                component.id,
-                              )}
-                              onChange={() => toggleComponent(component.id)}
+                      <Grid container>
+                        {components.map((component) => (
+                          <Grid size={4} key={component.id}>
+                            <FormControlLabel
+                              key={component.id}
+                              control={
+                                <Checkbox
+                                  checked={formData.components.includes(
+                                    component.id,
+                                  )}
+                                  onChange={() => toggleComponent(component.id)}
+                                />
+                              }
+                              label={component.name}
                             />
-                          }
-                          label={component.name}
-                        />
-                      ))
+                          </Grid>
+                        ))}
+                      </Grid>
                     )}
                   </FormGroup>
                 )}
@@ -258,7 +236,7 @@ export default function CreateIncident() {
                 <Button
                   type="submit"
                   variant="contained"
-                  disabled={loading}
+                  disabled={submitting}
                   sx={{ px: 4 }}
                 >
                   {submitting ? "Creating..." : "Create Incident"}

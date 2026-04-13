@@ -11,45 +11,16 @@ import {
   Typography,
 } from "@mui/material";
 import { Header } from "../../components/Header";
-import { useEffect, useState } from "react";
-import { componentService } from "../../services/componentService";
-import { incidentService } from "../../services/incidentService";
+import { useData } from "../../hooks/useData";
 
 export default function AdminDashboard() {
-  const [loading, setLoading] = useState<boolean>(false);
-  const [incidentCount, setIncidentCount] = useState(0);
-  const [activeIncidentCount, setActiveIncidentCount] = useState(0);
-  const [operationalComponentCount, setOperationalComponentCount] = useState(0);
-  const [componentCount, setComponentCount] = useState(0);
+  const { incidents, components, loading } = useData();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+  const incidentCount = incidents.length;
+  const activeIncidentCount = incidents.filter((i) => i.status === "processing").length;
+  const componentCount = components.length;
+  const operationalComponentCount = components.filter((i) => i.status === "operational").length;
 
-      try {
-        const [incidents, components] = await Promise.all([
-          incidentService.getAll(),
-          componentService.getAll(),
-        ]);
-        setIncidentCount(incidents.length);
-        const activeIncidents = incidents.filter(
-          (i) => i.status === "processing",
-        );
-        setActiveIncidentCount(activeIncidents.length);
-
-        setComponentCount(components.length);
-        const operationalComponents = components.filter(
-          (i) => i.status === "operational",
-        );
-        setOperationalComponentCount(operationalComponents.length);
-      } catch (error) {
-        console.error("Dashboard Error:", error);
-      }
-      setLoading(false);
-    };
-
-    fetchData();
-  }, []);
 
   const dashboardCount = [
     {

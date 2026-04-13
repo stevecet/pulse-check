@@ -22,10 +22,11 @@ import {
   Typography,
 } from "@mui/material";
 import { formatDate } from "../lib/formatDate";
-import { useState } from "react";
+import { LoadingState } from "./LoadingState";
+import { useEffect, useState } from "react";
 import type { IncidentUpdate } from "../lib/types";
 import { useAlert } from "../hooks/useAlert";
-import { supabase } from "../services/supabase";
+import { incidentService } from "../services/incidentService";
 
 type IncidentUpdatesProps = {
   incidentId: string;
@@ -37,33 +38,54 @@ export default function IncidentUpdates({
   const { showAlert } = useAlert();
   const [newUpdate, setNewUpdate] = useState("");
   const [updates, setUpdates] = useState<IncidentUpdate[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchUpdates = async () => {
+    if (!incidentId) return;
+    setLoading(true);
+    try {
+      const data = await incidentService.getUpdates(incidentId);
+      setUpdates(data);
+    } catch (error) {
+      console.error("Error fetching updates:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUpdates();
+  }, [incidentId]);
 
   const handleAddUpdate = async () => {
     if (!newUpdate.trim()) return;
 
-    const { data, error } = await supabase
-      .from("incident_updates")
-      .insert([{ incident_id: incidentId, message: newUpdate }])
-      .select()
-      .single();
-
-    if (!error) {
+    try {
+      const data = await incidentService.addUpdate(incidentId, newUpdate);
       setUpdates([data, ...updates]);
       setNewUpdate("");
       showAlert("Update posted!", "success");
+    } catch (error) {
+      console.error("Error posting update:", error);
+      showAlert("Failed to post update", "error");
     }
   };
 
   const handleDeleteUpdate = async (updateId: string) => {
-    const { error } = await supabase
-      .from("incident_updates")
-      .delete()
-      .eq("id", updateId);
-    if (!error) {
+    try {
+      await incidentService.deleteUpdate(updateId);
       setUpdates((prev) => prev.filter((u) => u.id !== updateId));
       showAlert("Update deleted!", "info");
+    } catch (error) {
+      console.error("Error deleting update:", error);
+      showAlert("Failed to delete update", "error");
     }
   };
+
+  if (loading) {
+    return <LoadingState message="Loading updates..." />;
+  }
+
   return (
     <Box>
       <Box sx={{ mt: 4 }}>

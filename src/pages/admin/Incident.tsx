@@ -14,38 +14,21 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useData } from "../../hooks/useData";
 import { useNavigate } from "react-router-dom";
-import { LoadingState } from "../../components/LoadingState";
+import { useMemo, useState } from "react";
 import { Header } from "../../components/Header";
-import { type Incident } from "../../lib/types";
+import { LoadingState } from "../../components/LoadingState";
 import { formatDate } from "../../lib/formatDate";
-import { incidentService } from "../../services/incidentService";
 
 export default function Incident() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const { incidents, loading } = useData();
   const [selectedButton, setSelectedButton] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [page, setPage] = useState(1);
   const pageSize = 6;
 
-  useEffect(() => {
-    const fetchIncidents = async () => {
-      setLoading(true);
-      try {
-        const data = await incidentService.getAll();
-        const sorted = [...data].sort((a, b) => a.title.localeCompare(b.title));
-        setIncidents(sorted);
-      } catch (error) {
-        console.error("Error fetching:", error);
-      }
-      setLoading(false);
-    };
-
-    fetchIncidents();
-  }, []);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 

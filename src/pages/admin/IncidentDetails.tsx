@@ -12,7 +12,6 @@ import {
   Badge,
   Chip,
   Tooltip,
-  Paper,
   IconButton,
   TextField,
   MenuItem,
@@ -26,7 +25,6 @@ import {
   CheckBoxOutlineBlank,
   Delete,
   Edit,
-  Send,
 } from "@mui/icons-material";
 import { useEffect, useState } from "react";
 import { LoadingState } from "../../components/LoadingState";
@@ -35,23 +33,14 @@ import type {
   Incident,
   IncidentComponentLink,
   IncidentStatus,
-  IncidentUpdate,
   SeverityLevel,
 } from "../../lib/types";
-import {
-  Timeline,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineItem,
-  TimelineOppositeContent,
-  TimelineSeparator,
-} from "@mui/lab";
 import DeleteDialog from "../../components/DeleteDialog";
+import IncidentUpdates from "../../components/IncidentUpdate";
 import { formatDate } from "../../lib/formatDate";
 import { useAlert } from "../../hooks/useAlert";
-import { componentService } from "../../services/componentService";
 import { incidentService } from "../../services/incidentService";
+import { useData } from "../../hooks/useData";
 
 type EditableIncident = Omit<Incident, "incident_components"> & {
   incident_components: Component[];
@@ -64,12 +53,10 @@ type IncidentWithRelations = Omit<Incident, "incident_components"> & {
 export default function IncidentDetail() {
   const { id } = useParams();
   const { showAlert } = useAlert();
+  const { components: globalComponents, refreshIncidents } = useData();
   const [incident, setIncident] = useState<IncidentWithRelations | null>(null);
-  const [components, setComponents] = useState<Component[]>([]);
-  const [updates, setUpdates] = useState<IncidentUpdate[]>([]);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [newUpdate, setNewUpdate] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState(false);
@@ -147,20 +134,12 @@ export default function IncidentDetail() {
       setLoading(true);
 
       try {
-        const [incidentData, updatesData, componentsData] = await Promise.all([
-          id ? incidentService.getByIdWithComponents(id) : Promise.resolve(null),
-          id ? incidentService.getUpdates(id) : Promise.resolve([]),
-          componentService.getAll(),
-        ]);
+        const incidentData = id ? await incidentService.getByIdWithComponents(id) : null;
 
         if (incidentData) {
           setIncident(incidentData as IncidentWithRelations);
         }
-        setUpdates(updatesData);
-        const sortedComponents = [...componentsData].sort((a, b) =>
-          a.name.localeCompare(b.name),
-        );
-        setComponents(sortedComponents);
+
       } catch (error) {
         console.error("Incident Error:", error);
       }
@@ -171,26 +150,13 @@ export default function IncidentDetail() {
     if (id) fetchData();
   }, [id]);
 
-  const handleAddUpdate = async () => {
-    if (!newUpdate.trim()) return;
 
-    if (!id) return;
-
-    try {
-      const data = await incidentService.addUpdate(id, newUpdate);
-      setUpdates([data, ...updates]);
-      setNewUpdate("");
-      showAlert("Update posted!", "success");
-    } catch (error) {
-      console.error("Error while posting update:", error);
-      showAlert("Failed to post update", "error");
-    }
-  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
       await incidentService.delete(deleteTarget);
+      await refreshIncidents();
       navigate("/admin/incidents");
     } catch (error) {
       console.error("Error while unlinking component:", error);
@@ -198,16 +164,7 @@ export default function IncidentDetail() {
     }
   };
 
-  const handleDeleteUpdate = async (updateId: string) => {
-    try {
-      await incidentService.deleteUpdate(updateId);
-      setUpdates((prev) => prev.filter((u) => u.id !== updateId));
-      showAlert("Update deleted!", "info");
-    } catch (error) {
-      console.error("Error while deleting update:", error);
-      showAlert("Failed to delete update", "error");
-    }
-  };
+
 
   const startEditing = () => {
     if (!incident) return;
@@ -265,11 +222,10 @@ export default function IncidentDetail() {
 
     if (changedMessages.length > 0) {
       try {
-        const insertedUpdates = await incidentService.addUpdates(
+        await incidentService.addUpdates(
           id,
           changedMessages,
         );
-        setUpdates((prev) => [...insertedUpdates, ...prev]);
       } catch (error) {
         console.error("Error while adding change log updates:", error);
         showAlert(
@@ -280,6 +236,7 @@ export default function IncidentDetail() {
     }
 
     showAlert("Incident updated successfully!", "success");
+    await refreshIncidents();
     setIsEditing(false);
     setSubmitting(false);
 
@@ -424,7 +381,7 @@ export default function IncidentDetail() {
                         {isEditing && (
                           <Autocomplete
                             multiple
-                            options={components}
+                            options={globalComponents}
                             disableCloseOnSelect
                             getOptionLabel={(option) => option.name}
                             value={editData?.incident_components ?? []}
@@ -621,88 +578,7 @@ export default function IncidentDetail() {
                     </Stack>
                   </CardContent>
                 </Card>
-                <Box sx={{ mt: 4 }}>
-                  <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
-                    <Stack direction="row" spacing={2}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder="Type a new update message..."
-                        value={newUpdate}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          setNewUpdate(e.target.value);
-                        }}
-                      />
-                      <Button
-                        variant="contained"
-                        onClick={handleAddUpdate}
-                        startIcon={<Send />}
-                      >
-                        Post
-                      </Button>
-                    </Stack>
-                  </Paper>
-                </Box>
-                <Card variant="outlined">
-                  <CardHeader
-                    title={
-                      <Typography variant="h6">Incident Timeline</Typography>
-                    }
-                  />
-                  <Divider />
-                  <CardContent>
-                    {updates.length > 0 ? (
-                      <Stack spacing={0}>
-                        <Timeline position="right">
-                          {updates.map((update) => (
-                            <TimelineItem key={update.id}>
-                              <TimelineOppositeContent
-                                color="text.secondary"
-                                sx={{ flex: 0.2 }}
-                              >
-                                {formatDate(update.created_at)}
-                              </TimelineOppositeContent>
-                              <TimelineSeparator>
-                                <TimelineDot  />
-                                <TimelineConnector />
-                              </TimelineSeparator>
-                              <TimelineContent sx={{ pb: 4 }}>
-                                <Paper
-                                  sx={{
-                                    p: 2,
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "flex-start",
-                                  }}
-                                >
-                                  <Typography>{update.message}</Typography>
-                                  <IconButton
-                                    size="small"
-                                    color="error"
-                                    onClick={() =>
-                                      handleDeleteUpdate(update.id)
-                                    }
-                                  >
-                                    <Delete fontSize="inherit" />
-                                  </IconButton>
-                                </Paper>
-                              </TimelineContent>
-                            </TimelineItem>
-                          ))}
-                        </Timeline>
-                      </Stack>
-                    ) : (
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        textAlign="center"
-                        py={2}
-                      >
-                        No updates yet. Check back soon.
-                      </Typography>
-                    )}
-                  </CardContent>
-                </Card>
+                <IncidentUpdates incidentId={id!} />
               </Stack>
             ) : (
               <Typography textAlign="center" py={10}>

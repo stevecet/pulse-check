@@ -16,7 +16,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useAlert } from "../../hooks/useAlert";
-import { supabase } from "../../services/supabase";
+import { authService } from "../../services/authService";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -26,25 +27,27 @@ export default function AuthScreen() {
   const { showAlert } = useAlert();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const { refreshAuth } = useAuth();
 
-  const handleAuth = async (e: React.SubmitEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = isSignUp
-      ? await supabase.auth.signUp({ email, password })
-      : await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      showAlert(error.message, "error");
-    } else {
-      navigate("/admin");
-      showAlert(
-        isSignUp ? "Check your email for confirmation!" : "Welcome back!",
-        "success",
-      );
+    try {
+      if (isSignUp) {
+        await authService.signUp({ email, password });
+        showAlert("Check your email for confirmation!", "success");
+      } else {
+        await authService.signIn({ email, password });
+        await refreshAuth();
+        navigate("/admin");
+        showAlert("Welcome back!", "success");
+      }
+    } catch (error: any) {
+      showAlert(error.message || "Authentication failed", "error");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -77,6 +80,7 @@ export default function AuthScreen() {
                 Password *
               </InputLabel>
               <OutlinedInput
+                id="outlined-adornment-password"
                 type={showPassword ? "text" : "password"}
                 endAdornment={
                   <InputAdornment position="end">
