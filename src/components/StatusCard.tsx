@@ -13,7 +13,7 @@ export function StatusCard({ item }: Readonly<{ item: Component }>) {
       case "operational":
         return <CheckCircle color="success" fontSize="small" />;
       case "maintenance":
-        return <Handyman color="primary" fontSize="small" />;
+        return <Handyman sx={{ color: "#1976d2" }} fontSize="small" />;
       case "incident":
         return <ReportProblem color="warning" fontSize="small" />;
       case "outage":
@@ -28,7 +28,7 @@ export function StatusCard({ item }: Readonly<{ item: Component }>) {
       case "operational":
         return "success.main";
       case "maintenance":
-        return "primary.main";
+        return "#1976d2";
       case "incident":
         return "warning.main";
       case "outage":

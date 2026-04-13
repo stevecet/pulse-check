@@ -356,7 +356,6 @@ export default function IncidentDetail() {
                             <>
                               <Button
                                 variant="contained"
-                                sx={{ bgcolor: "#0a1628" }}
                                 onClick={() => editData && handleUpdate(editData)}
                               >
                                 {submitting ? "Saving..." : "Save changes"}
@@ -373,8 +372,8 @@ export default function IncidentDetail() {
                           ) : (
                             <>
                               <IconButton
-                                sx={{ color: "#0a1628" }}
                                 onClick={() => startEditing()}
+                                sx={{ color: "#0a1628" }}
                               >
                                 <Edit />
                               </IconButton>
@@ -461,7 +460,7 @@ export default function IncidentDetail() {
                                 placeholder="Add components"
                               />
                             )}
-                            renderTags={(tagValue, getTagProps) =>
+                            renderValue={(tagValue, getTagProps) =>
                               tagValue.map((option, index) => (
                                 <Chip
                                   label={option.name}
@@ -636,7 +635,6 @@ export default function IncidentDetail() {
                       />
                       <Button
                         variant="contained"
-                        sx={{ bgcolor: "#0a1628" }}
                         onClick={handleAddUpdate}
                         startIcon={<Send />}
                       >
@@ -665,7 +663,7 @@ export default function IncidentDetail() {
                                 {formatDate(update.created_at)}
                               </TimelineOppositeContent>
                               <TimelineSeparator>
-                                <TimelineDot sx={{ bgcolor: "#0a1628" }} />
+                                <TimelineDot  />
                                 <TimelineConnector />
                               </TimelineSeparator>
                               <TimelineContent sx={{ pb: 4 }}>

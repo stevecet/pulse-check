@@ -255,7 +255,6 @@ export default function Incident() {
             page={currentPage}
             onChange={(_event, value) => setPage(value)}
             shape="rounded"
-            sx={{ color: "#0a1628"}}
           />
         </Stack>
       )}

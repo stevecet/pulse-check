@@ -80,7 +80,6 @@ export default function IncidentUpdates({
             />
             <Button
               variant="contained"
-              sx={{ bgcolor: "#0a1628" }}
               onClick={handleAddUpdate}
               disabled={!incidentId}
               startIcon={<Send />}
@@ -108,7 +107,7 @@ export default function IncidentUpdates({
                       {formatDate(update.created_at)}
                     </TimelineOppositeContent>
                     <TimelineSeparator>
-                      <TimelineDot sx={{ bgcolor: "#0a1628" }} />
+                      <TimelineDot />
                       <TimelineConnector />
                     </TimelineSeparator>
                     <TimelineContent sx={{ pb: 4 }}>

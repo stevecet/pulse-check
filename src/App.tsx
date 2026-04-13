@@ -22,6 +22,9 @@ const theme = createTheme({
     fontFamily: "Barlow, sans-serif",
   },
   palette: {
+    primary: {
+      main: "#0a1628",
+    },
     background: {
       default: "#F8F8F8",
     },

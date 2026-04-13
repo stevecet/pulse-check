@@ -10,8 +10,8 @@ import {
 import { StatusCard } from "../StatusCard";
 import { EventCard } from "../EventCard";
 import type { Component } from "../../lib/types";
-import { LoadingState } from "../LoadingState";
 import { componentService } from "../../services/componentService";
+import { LoadingState } from "../LoadingState";
 
 export default function StatusOverview() {
   const [search, setSearch] = useState("");
@@ -41,14 +41,16 @@ export default function StatusOverview() {
     loadComponents();
   }, []);
 
+  if (loading) {
+    return <LoadingState message="Loading events" />;
+  }
+
   return (
     <>
       <Typography variant="h6" gutterBottom>
         All Events
       </Typography>
-      {loading ? (
-        <LoadingState message="Loading events" />
-      ) : events.length === 0 ? (
+      {events.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 4 }}>
           <Box
             component="span"
@@ -80,7 +82,7 @@ export default function StatusOverview() {
           flexWrap: "wrap",
         }}
       >
-        <Typography variant="h6">Components: Current Status</Typography>
+        <Typography variant="h6">Components current status</Typography>
 
         <TextField
           size="small"
@@ -89,43 +91,46 @@ export default function StatusOverview() {
           onChange={(e) => setSearch(e.target.value)}
         />
       </Box>
-      <Grid container spacing={2}>
-        {loading ? (
-          <LoadingState message="Loading component" />
-        ) : (
-          filteredComponents.map((item) => (
-            <Grid size={6} key={item.id}>
-              <StatusCard item={item} />
-            </Grid>
-          ))
-        )}
-      </Grid>
       <Box
         sx={{
           display: "flex",
           justifyContent: "center",
           gap: 3,
-          mt: 3,
+          my: 3,
           flexWrap: "wrap",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <CheckCircle color="success" fontSize="small" />
-          <Typography variant="body2">Operational</Typography>
-        </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Handyman color="primary" fontSize="small" />
-          <Typography variant="body2">Maintenance</Typography>
-        </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Warning color="warning" fontSize="small" />
-          <Typography variant="body2">Incident</Typography>
-        </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Error color="error" fontSize="small" />
-          <Typography variant="body2">Outage</Typography>
-        </Box>
+        {[
+          {
+            status: "Operational",
+            icon: <CheckCircle color="success" fontSize="small" />,
+          },
+          {
+            status: "Maintenance",
+            icon: <Handyman sx={{ color: "#1976d2"}} fontSize="small" />,
+          },
+          {
+            status: "Incident",
+            icon: <Warning color="warning" fontSize="small" />,
+          },
+          { status: "Outage", icon: <Error color="error" fontSize="small" /> },
+        ].map((item) => (
+          <Box
+            key={item.status}
+            sx={{ display: "flex", alignItems: "center", gap: 1 }}
+          >
+            {item.icon}
+            <Typography variant="body2">{item.status}</Typography>
+          </Box>
+        ))}
       </Box>
+      <Grid container spacing={2}>
+        {filteredComponents.map((item) => (
+          <Grid size={6} key={item.id}>
+            <StatusCard item={item} />
+          </Grid>
+        ))}
+      </Grid>
     </>
   );
 }

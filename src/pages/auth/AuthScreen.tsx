@@ -98,7 +98,6 @@ export default function AuthScreen() {
               fullWidth
               size="large"
               disabled={loading}
-              sx={{ bgcolor: "#0a1628" }}
             >
               {loading ? "Processing..." : isSignUp ? "Sign Up" : "Sign In"}
             </Button>

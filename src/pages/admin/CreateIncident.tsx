@@ -23,6 +23,7 @@ import { Header } from "../../components/Header";
 import { supabase } from "../../services/supabase";
 import { LoadingState } from "../../components/LoadingState";
 import { useAlert } from "../../hooks/useAlert";
+import { componentService } from "../../services/componentService";
 
 type CreateIncidentFormData = {
   title: string;
@@ -241,9 +242,6 @@ export default function CreateIncident() {
                                 component.id,
                               )}
                               onChange={() => toggleComponent(component.id)}
-                              sx={{
-                                "& .MuiSvgIcon-root": { color: "#0a1628" },
-                              }}
                             />
                           }
                           label={component.name}
@@ -261,7 +259,7 @@ export default function CreateIncident() {
                   type="submit"
                   variant="contained"
                   disabled={loading}
-                  sx={{ px: 4, bgcolor: "#0a1628" }}
+                  sx={{ px: 4 }}
                 >
                   {submitting ? "Creating..." : "Create Incident"}
                 </Button>

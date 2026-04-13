@@ -21,6 +21,7 @@ export default function AdminDashboard() {
   const [activeIncidentCount, setActiveIncidentCount] = useState(0);
   const [operationalComponentCount, setOperationalComponentCount] = useState(0);
   const [componentCount, setComponentCount] = useState(0);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -31,7 +32,9 @@ export default function AdminDashboard() {
           componentService.getAll(),
         ]);
         setIncidentCount(incidents.length);
-        const activeIncidents = incidents.filter((i) => i.status === "processing");
+        const activeIncidents = incidents.filter(
+          (i) => i.status === "processing",
+        );
         setActiveIncidentCount(activeIncidents.length);
 
         setComponentCount(components.length);

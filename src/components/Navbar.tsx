@@ -8,7 +8,6 @@ import {
   Button,
 } from "@mui/material";
 import { Launch } from "@mui/icons-material";
-import { deepOrange } from "@mui/material/colors";
 
 export default function NavBar() {
   return (
@@ -21,10 +20,10 @@ export default function NavBar() {
             color="inherit"
             aria-label="menu"
           >
-            <Avatar sx={{ bgcolor: deepOrange[500] }}>S</Avatar>
+            <Avatar sx={{ bgcolor: "#00AA66" }}>P</Avatar>
           </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Steveceto
+            Pulse Check
           </Typography>
           <Button
             variant="contained"

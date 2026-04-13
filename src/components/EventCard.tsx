@@ -1,11 +1,16 @@
-import { Box,   Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { Warning, Error, Handyman } from "@mui/icons-material";
 
-export function EventCard({ event }: { event: any }) {
+interface Event {
+  name: string;
+  status: string;
+}
+
+export function EventCard({ event }: { readonly event: Event }) {
   const getIcon = () => {
     switch (event.status) {
       case "maintenance":
-        return <Handyman color="primary" />;
+        return <Handyman sx={{ color: "#1976d2" }} />;
       case "incident":
         return <Warning color="warning" />;
       case "outage":

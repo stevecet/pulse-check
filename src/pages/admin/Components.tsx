@@ -64,10 +64,6 @@ export default function Components() {
     loadComponents();
   }, []);
 
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery]);
-
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -181,7 +177,6 @@ export default function Components() {
           color={showForm ? "error" : "primary"}
           startIcon={showForm ? <Close /> : <Add />}
           onClick={() => setShowForm(!showForm)}
-          sx={{ bgcolor: showForm ? "inherit" : "#0a1628" }}
         >
           {showForm ? "Cancel" : "Add Component"}
         </Button>
@@ -209,7 +204,7 @@ export default function Components() {
       {showForm && (
         <Card
           variant="outlined"
-          sx={{ borderColor: "#0a1628", borderWidth: 1, my: 3 }}
+          sx={{ borderWidth: 1, my: 3 }}
         >
           <CardHeader
             title={<Typography variant="h6">Add New Component</Typography>}
@@ -266,7 +261,7 @@ export default function Components() {
                   type="submit"
                   variant="contained"
                   disabled={submitting}
-                  sx={{ alignSelf: "flex-start", px: 4, bgcolor: "#0a1628" }}
+                  sx={{ alignSelf: "flex-start", px: 4 }}
                 >
                   {submitting ? "Creating..." : "Create Component"}
                 </Button>
@@ -457,7 +452,6 @@ export default function Components() {
             page={Math.min(page, totalPages)}
             onChange={(_event, value) => setPage(value)}
             shape="rounded"
-            sx={{ color: "#0a1628" }}
           />
         </Stack>
       )}

@@ -5,7 +5,7 @@ import "@fontsource/barlow/400.css";
 import "@fontsource/barlow/500.css";
 import "@fontsource/barlow/600.css";
 import "@fontsource/barlow/700.css";
-import { AuthProvider } from "./context/AuthContext.tsx";
+import { AuthProvider } from "./Provider/AuthProvider.tsx";
 import { AlertProvider } from "./Provider/AlertProvider.tsx";
 
 createRoot(document.getElementById("root")!).render(

@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { componentService } from "../../services/componentService";
 import { incidentService } from "../../services/incidentService";
 import type { Component, Incident } from "../../lib/types";
+import { useAlert } from "../../hooks/useAlert";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function Dashboard() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [components, setComponents] = useState<Component[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const { showAlert } = useAlert();
 
   const handleMainChange = (event: React.SyntheticEvent, newValue: string) => {
     event.preventDefault();
@@ -65,6 +67,7 @@ export default function Dashboard() {
       console.error("Dashboard refresh error:", error);
     } finally {
       setRefreshing(false);
+      showAlert("Dashboard refreshed successfully", "success");
     }
   };
 
@@ -93,8 +96,9 @@ export default function Dashboard() {
   );
 
   const operationalComponentsCount = useMemo(
-    () => components.filter((component) => component.status === "operational")
-      .length,
+    () =>
+      components.filter((component) => component.status === "operational")
+        .length,
     [components],
   );
 
@@ -155,36 +159,57 @@ export default function Dashboard() {
 
           {mainTab === "1" && (
             <Box sx={{ mt: 2 }}>
-              {showAllOperational && (
-                <Box
-                  sx={{
-                    bgcolor: "#00AA66",
-                    color: "white",
-                    p: 2,
-                    borderRadius: 1,
-                    my: 2,
-                    textAlign: "center",
-                    fontWeight: "medium",
-                  }}
-                >
-                  All systems operational
+              {refreshing ? (
+                <Box>
+                  <Box
+                    sx={{
+                      bgcolor: "#0055aa",
+                      color: "white",
+                      p: 2,
+                      borderRadius: 1,
+                      my: 2,
+                      textAlign: "center",
+                      fontWeight: "medium",
+                    }}
+                  >
+                    Loading...
+                  </Box>
+                </Box>
+              ) : (
+                <Box>
+                  {showAllOperational && (
+                    <Box
+                      sx={{
+                        bgcolor: "#00AA66",
+                        color: "white",
+                        p: 2,
+                        borderRadius: 1,
+                        my: 2,
+                        textAlign: "center",
+                        fontWeight: "medium",
+                      }}
+                    >
+                      All systems operational
+                    </Box>
+                  )}
+                  {!showAllOperational && (
+                    <Box
+                      sx={{
+                        bgcolor: "#F59E0B",
+                        color: "white",
+                        p: 2,
+                        borderRadius: 1,
+                        my: 2,
+                        textAlign: "center",
+                        fontWeight: "medium",
+                      }}
+                    >
+                      Some systems are currently experiencing issues.
+                    </Box>
+                  )}
                 </Box>
               )}
-              {!showAllOperational && (
-                <Box
-                  sx={{
-                    bgcolor: "#F59E0B",
-                    color: "white",
-                    p: 2,
-                    borderRadius: 1,
-                    my: 2,
-                    textAlign: "center",
-                    fontWeight: "medium",
-                  }}
-                >
-                  Some systems are currently experiencing issues.
-                </Box>
-              )}
+
               <SubTabs
                 value={currentSubTab}
                 onChange={handleCurrentSubChange}
@@ -197,7 +222,9 @@ export default function Dashboard() {
                   {
                     value: "2",
                     label: "Active Incidents",
-                    content: <ActiveIncidents key={`incidents-${refreshKey}`} />,
+                    content: (
+                      <ActiveIncidents key={`incidents-${refreshKey}`} />
+                    ),
                   },
                   {
                     value: "3",
@@ -205,7 +232,10 @@ export default function Dashboard() {
                     content: (
                       <Box sx={{ mt: 2 }}>
                         {maintenanceComponents.length === 0 ? (
-                          <Card variant="outlined" sx={{ py: 6, textAlign: "center" }}>
+                          <Card
+                            variant="outlined"
+                            sx={{ py: 6, textAlign: "center" }}
+                          >
                             <Typography color="text.secondary">
                               No active maintenance right now.
                             </Typography>
@@ -254,7 +284,10 @@ export default function Dashboard() {
                     label: "Scheduled Maintenance",
                     // TODO: Replace placeholder when scheduled maintenance data is available.
                     content: (
-                      <Card variant="outlined" sx={{ py: 6, textAlign: "center" }}>
+                      <Card
+                        variant="outlined"
+                        sx={{ py: 6, textAlign: "center" }}
+                      >
                         <Typography color="text.secondary">
                           No scheduled maintenance available.
                         </Typography>
@@ -280,7 +313,8 @@ export default function Dashboard() {
                         <Box
                           sx={{
                             display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                            gridTemplateColumns:
+                              "repeat(auto-fit, minmax(180px, 1fr))",
                             gap: 2,
                           }}
                         >
@@ -294,15 +328,17 @@ export default function Dashboard() {
                                 >
                                   {metric.label}
                                 </Typography>
-                                <Typography variant="h6">{metric.value}</Typography>
+                                <Typography variant="h6">
+                                  {metric.value}
+                                </Typography>
                               </CardContent>
                             </Card>
                           ))}
                         </Box>
                         <Divider sx={{ my: 3 }} />
                         <Typography variant="body2" color="text.secondary">
-                          This overview summarizes incident and component history
-                          based on the latest status data.
+                          This overview summarizes incident and component
+                          history based on the latest status data.
                         </Typography>
                       </Box>
                     ),
@@ -313,7 +349,10 @@ export default function Dashboard() {
                     content: (
                       <Box sx={{ mt: 2 }}>
                         {resolvedIncidents.length === 0 ? (
-                          <Card variant="outlined" sx={{ py: 6, textAlign: "center" }}>
+                          <Card
+                            variant="outlined"
+                            sx={{ py: 6, textAlign: "center" }}
+                          >
                             <Typography color="text.secondary">
                               No resolved incidents yet.
                             </Typography>
@@ -360,7 +399,10 @@ export default function Dashboard() {
                     label: "Past Maintenance",
                     // TODO: Replace placeholder when maintenance history is modeled.
                     content: (
-                      <Card variant="outlined" sx={{ py: 6, textAlign: "center" }}>
+                      <Card
+                        variant="outlined"
+                        sx={{ py: 6, textAlign: "center" }}
+                      >
                         <Typography color="text.secondary">
                           Past maintenance records will appear here.
                         </Typography>
@@ -372,7 +414,10 @@ export default function Dashboard() {
                     label: "Component History",
                     // TODO: Replace placeholder when component history data is available.
                     content: (
-                      <Card variant="outlined" sx={{ py: 6, textAlign: "center" }}>
+                      <Card
+                        variant="outlined"
+                        sx={{ py: 6, textAlign: "center" }}
+                      >
                         <Typography color="text.secondary">
                           Component history tracking is coming soon.
                         </Typography>

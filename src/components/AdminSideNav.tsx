@@ -16,6 +16,7 @@ import { Button, Stack } from "@mui/material";
 import { Add, BarChart, BugReport, Dashboard } from "@mui/icons-material";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../services/supabase";
+import { useAuth } from "../hooks/useAuth";
 
 const drawerWidth = 240;
 
@@ -69,13 +70,16 @@ export default function ResponsiveDrawer() {
     },
   ];
 
+  const { user } = useAuth();
+  const userEmail = user?.email || "Unknown User";
+
   const drawer = (
     <div>
       <Box sx={{ p: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>
           Admin Panel
         </Typography>
-        <Typography variant="body2"> steveceto@gmail.com </Typography>
+        <Typography variant="body2"> {userEmail} </Typography>
       </Box>
       <Divider />
       <List sx={{ mx: 1 }}>
@@ -105,12 +109,7 @@ export default function ResponsiveDrawer() {
           "& .MuiButton-root": { textTransform: "none", ml: 2 },
         }}
       >
-        <Button
-          variant="outlined"
-          fullWidth
-          sx={{ color: "#0a1628", borderColor: "gray" }}
-          onClick={() => navigate("/")}
-        >
+        <Button variant="outlined" fullWidth onClick={() => navigate("/")}>
           Back to Main Dashboard
         </Button>
         <Button
