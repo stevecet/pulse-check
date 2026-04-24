@@ -13,12 +13,12 @@ import {
   Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
-import { useData } from "../../hooks/useData";
 import { type Incident } from "../../lib/types";
 import { formatDate } from "../../lib/formatDate";
 import { LoadingState } from "../LoadingState";
+import { useIncidents } from "../../hooks/useIncidents";
 export default function ActiveIncidents() {
-  const { incidents, loading } = useData();
+  const { data: incidents = [], isLoading } = useIncidents();
   const [selectedButton, setSelectedButton] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -27,22 +27,23 @@ export default function ActiveIncidents() {
   }, [incidents]);
 
 
+  const searchLower = searchQuery.toLowerCase();
+
   const filteredIncidents = useMemo(() => {
-    return activeIncidents.filter((incident: Incident) => {
+    return (activeIncidents ?? []).filter((incident: Incident) => {
       const matchesFilter =
         selectedButton === "all" ||
         incident.status.toLowerCase() === selectedButton.toLowerCase();
 
-      const searchLower = searchQuery.toLowerCase();
       const matchesSearch =
         incident.title.toLowerCase().includes(searchLower) ||
-        incident.description.toLowerCase().includes(searchLower) ||
+        (incident.description ?? "").toLowerCase().includes(searchLower) ||
         incident.status.toLowerCase().includes(searchLower) ||
         incident.severity.toLowerCase().includes(searchLower);
 
       return matchesFilter && matchesSearch;
     });
-  }, [incidents, selectedButton, searchQuery]);
+  }, [activeIncidents, selectedButton, searchLower]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -121,7 +122,7 @@ export default function ActiveIncidents() {
         />
       </Box>
 
-      {loading ? (
+      {isLoading ? (
         <LoadingState message="Loading Incidents..." />
       ) : (
         <Stack spacing={2} marginBottom={3}>
@@ -130,7 +131,7 @@ export default function ActiveIncidents() {
               <Typography color="text.secondary">No incidents found</Typography>
             </Card>
           ) : (
-            filteredIncidents.map((incident) => (
+            filteredIncidents.map((incident: Incident) => (
               <Card
                 key={incident.id}
                 variant="outlined"

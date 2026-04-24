@@ -4,6 +4,7 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Container,
   Divider,
   IconButton,
@@ -19,12 +20,14 @@ import StatusOverview from "../../components/CurrentStatus/StatusOverview";
 import ActiveIncidents from "../../components/CurrentStatus/ActiveIncidents";
 import { useNavigate } from "react-router-dom";
 import { useAlert } from "../../hooks/useAlert";
-import { useData } from "../../hooks/useData";
 import { type Incident, type Component } from "../../lib/types";
+import { useIncidents } from "../../hooks/useIncidents";
+import { useComponents } from "../../hooks/useComponents";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { incidents, components, loading: refreshing, refreshAll } = useData();
+  const { data: incidents = [], refetch: refetchIncidents, isFetching: isIncidentsFetching, isLoading: isIncidentsLoading } = useIncidents();
+  const { data: components = [], refetch: refetchComponents, isFetching: isComponentsFetching, isLoading: isComponentsLoading } = useComponents();
   const [mainTab, setMainTab] = useState("1");
   const [currentSubTab, setCurrentSubTab] = useState("1");
   const [historySubTab, setHistorySubTab] = useState("1");
@@ -66,13 +69,13 @@ export default function Dashboard() {
   );
 
   const resolvedIncidents = useMemo(
-    () => incidents.filter((incident) => incident.status === "resolved"),
+    () => incidents.filter((incident: Incident) => incident.status === "resolved"),
     [incidents],
   );
 
   const operationalComponentsCount = useMemo(
     () =>
-      components.filter((component) => component.status === "operational")
+      components.filter((component: Component) => component.status === "operational")
         .length,
     [components],
   );
@@ -116,12 +119,12 @@ export default function Dashboard() {
                 aria-label="refresh"
                 onClick={async () => {
                   setRefreshKey((prev) => prev + 1);
-                  await refreshAll();
+                  await Promise.all([refetchIncidents(), refetchComponents()]);
                   showAlert("Dashboard refreshed successfully", "success");
                 }}
-                disabled={refreshing}
+                disabled={isIncidentsFetching || isComponentsFetching}
               >
-                <Cached />
+                {isIncidentsFetching || isComponentsFetching ? <CircularProgress size={20} /> : <Cached />}
               </IconButton>
               <Button
                 variant="contained"
@@ -136,7 +139,7 @@ export default function Dashboard() {
 
           {mainTab === "1" && (
             <Box sx={{ mt: 2 }}>
-              {refreshing ? (
+              {isIncidentsLoading || isComponentsLoading ? (
                 <Box>
                   <Box
                     sx={{
@@ -259,7 +262,6 @@ export default function Dashboard() {
                   {
                     value: "4",
                     label: "Scheduled Maintenance",
-                    // TODO: Replace placeholder when scheduled maintenance data is available.
                     content: (
                       <Card
                         variant="outlined"
@@ -336,7 +338,7 @@ export default function Dashboard() {
                           </Card>
                         ) : (
                           <Stack spacing={2}>
-                            {resolvedIncidents.map((incident) => (
+                            {resolvedIncidents.map((incident: Incident) => (
                               <Card key={incident.id} variant="outlined">
                                 <CardContent
                                   sx={{
@@ -374,7 +376,6 @@ export default function Dashboard() {
                   {
                     value: "3",
                     label: "Past Maintenance",
-                    // TODO: Replace placeholder when maintenance history is modeled.
                     content: (
                       <Card
                         variant="outlined"
@@ -382,21 +383,6 @@ export default function Dashboard() {
                       >
                         <Typography color="text.secondary">
                           Past maintenance records will appear here.
-                        </Typography>
-                      </Card>
-                    ),
-                  },
-                  {
-                    value: "4",
-                    label: "Component History",
-                    // TODO: Replace placeholder when component history data is available.
-                    content: (
-                      <Card
-                        variant="outlined"
-                        sx={{ py: 6, textAlign: "center" }}
-                      >
-                        <Typography color="text.secondary">
-                          Component history tracking is coming soon.
                         </Typography>
                       </Card>
                     ),

@@ -40,7 +40,8 @@ import IncidentUpdates from "../../components/IncidentUpdate";
 import { formatDate } from "../../lib/formatDate";
 import { useAlert } from "../../hooks/useAlert";
 import { incidentService } from "../../services/incidentService";
-import { useData } from "../../hooks/useData";
+import { useComponents } from "../../hooks/useComponents";
+import { useIncidents } from "../../hooks/useIncidents";
 
 type EditableIncident = Omit<Incident, "incident_components"> & {
   incident_components: Component[];
@@ -53,7 +54,8 @@ type IncidentWithRelations = Omit<Incident, "incident_components"> & {
 export default function IncidentDetail() {
   const { id } = useParams();
   const { showAlert } = useAlert();
-  const { components: globalComponents, refreshIncidents } = useData();
+  const { data: globalComponents = [] } = useComponents();
+  const { refetch } = useIncidents();
   const [incident, setIncident] = useState<IncidentWithRelations | null>(null);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -98,8 +100,9 @@ export default function IncidentDetail() {
     }
 
     const previousComponentIds = new Set(
-      previousIncident.incident_components?.map(({ component }) => component.id) ??
-        [],
+      previousIncident.incident_components?.map(
+        ({ component }) => component.id,
+      ) ?? [],
     );
     const nextComponentIds = new Set(
       nextIncident.incident_components.map((component) => component.id),
@@ -107,7 +110,9 @@ export default function IncidentDetail() {
 
     const componentsChanged =
       previousComponentIds.size !== nextComponentIds.size ||
-      [...previousComponentIds].some((componentId) => !nextComponentIds.has(componentId));
+      [...previousComponentIds].some(
+        (componentId) => !nextComponentIds.has(componentId),
+      );
 
     if (componentsChanged) {
       messages.push("Affected components have been updated");
@@ -134,12 +139,13 @@ export default function IncidentDetail() {
       setLoading(true);
 
       try {
-        const incidentData = id ? await incidentService.getByIdWithComponents(id) : null;
+        const incidentData = id
+          ? await incidentService.getByIdWithComponents(id)
+          : null;
 
         if (incidentData) {
           setIncident(incidentData as IncidentWithRelations);
         }
-
       } catch (error) {
         console.error("Incident Error:", error);
       }
@@ -150,21 +156,17 @@ export default function IncidentDetail() {
     if (id) fetchData();
   }, [id]);
 
-
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
       await incidentService.delete(deleteTarget);
-      await refreshIncidents();
+      await refetch();
       navigate("/admin/incidents");
     } catch (error) {
       console.error("Error while unlinking component:", error);
       showAlert("Error unlinking component", "error");
     }
   };
-
-
 
   const startEditing = () => {
     if (!incident) return;
@@ -222,10 +224,7 @@ export default function IncidentDetail() {
 
     if (changedMessages.length > 0) {
       try {
-        await incidentService.addUpdates(
-          id,
-          changedMessages,
-        );
+        await incidentService.addUpdates(id, changedMessages);
       } catch (error) {
         console.error("Error while adding change log updates:", error);
         showAlert(
@@ -236,19 +235,19 @@ export default function IncidentDetail() {
     }
 
     showAlert("Incident updated successfully!", "success");
-    await refreshIncidents();
+    await refetch();
     setIsEditing(false);
     setSubmitting(false);
 
     setIncident((prev) =>
       prev
         ? {
-            ...prev,
-            ...updatedIncident,
-            incident_components: incident_components.map((component) => ({
-              component,
-            })),
-          }
+          ...prev,
+          ...updatedIncident,
+          incident_components: incident_components.map((component) => ({
+            component,
+          })),
+        }
         : null,
     );
   };
@@ -313,7 +312,9 @@ export default function IncidentDetail() {
                             <>
                               <Button
                                 variant="contained"
-                                onClick={() => editData && handleUpdate(editData)}
+                                onClick={() =>
+                                  editData && handleUpdate(editData)
+                                }
                               >
                                 {submitting ? "Saving..." : "Save changes"}
                               </Button>
@@ -389,9 +390,9 @@ export default function IncidentDetail() {
                               setEditData((prev) =>
                                 prev
                                   ? {
-                                      ...prev,
-                                      incident_components: newValue,
-                                    }
+                                    ...prev,
+                                    incident_components: newValue,
+                                  }
                                   : prev,
                               );
                             }}
@@ -436,24 +437,24 @@ export default function IncidentDetail() {
                           Description
                         </Typography>
                         {isEditing ? (
-                            <TextField
-                              fullWidth
-                              multiline
-                              rows={3}
-                              size="small"
-                              value={editData?.description ?? ""}
-                              onChange={(e) =>
-                                setEditData((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        description: e.target.value,
-                                      }
-                                    : prev,
-                                )
-                              }
-                              sx={{ mt: 1 }}
-                            />
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={3}
+                            size="small"
+                            value={editData?.description ?? ""}
+                            onChange={(e) =>
+                              setEditData((prev) =>
+                                prev
+                                  ? {
+                                    ...prev,
+                                    description: e.target.value,
+                                  }
+                                  : prev,
+                              )
+                            }
+                            sx={{ mt: 1 }}
+                          />
                         ) : (
                           <Typography>{incident.description}</Typography>
                         )}
@@ -462,22 +463,22 @@ export default function IncidentDetail() {
                       <Box>
                         <Typography sx={{ fontWeight: 600 }}>Impact</Typography>
                         {isEditing ? (
-                            <TextField
-                              fullWidth
-                              size="small"
-                              value={editData?.impact_estimate ?? ""}
-                              onChange={(e) =>
-                                setEditData((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        impact_estimate: e.target.value,
-                                      }
-                                    : prev,
-                                )
-                              }
-                              sx={{ mt: 1 }}
-                            />
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={editData?.impact_estimate ?? ""}
+                            onChange={(e) =>
+                              setEditData((prev) =>
+                                prev
+                                  ? {
+                                    ...prev,
+                                    impact_estimate: e.target.value,
+                                  }
+                                  : prev,
+                              )
+                            }
+                            sx={{ mt: 1 }}
+                          />
                         ) : (
                           <Typography>
                             {incident.impact_estimate || "No impact specified"}
@@ -499,10 +500,10 @@ export default function IncidentDetail() {
                                 setEditData((prev) =>
                                   prev
                                     ? {
-                                        ...prev,
-                                        severity: e.target
-                                          .value as SeverityLevel,
-                                      }
+                                      ...prev,
+                                      severity: e.target
+                                        .value as SeverityLevel,
+                                    }
                                     : prev,
                                 )
                               }
@@ -532,9 +533,10 @@ export default function IncidentDetail() {
                                 setEditData((prev) =>
                                   prev
                                     ? {
-                                        ...prev,
-                                        status: e.target.value as IncidentStatus,
-                                      }
+                                      ...prev,
+                                      status: e.target
+                                        .value as IncidentStatus,
+                                    }
                                     : prev,
                                 )
                               }

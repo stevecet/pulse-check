@@ -42,12 +42,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ 
-        user, 
-        role, 
-        loading, 
+      value={{
+        user,
+        role,
+        loading,
         isAdmin: role === "admin",
-        refreshAuth: loadUser 
+        refreshAuth: loadUser
       }}
     >
       {children}

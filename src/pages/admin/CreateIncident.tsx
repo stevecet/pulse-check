@@ -23,8 +23,8 @@ import type { IncidentStatus, SeverityLevel } from "../../lib/types";
 import { Header } from "../../components/Header";
 import { LoadingState } from "../../components/LoadingState";
 import { useAlert } from "../../hooks/useAlert";
-import { incidentService } from "../../services/incidentService";
-import { useData } from "../../hooks/useData";
+import { useComponents } from "../../hooks/useComponents";
+import { useCreateIncident } from "../../hooks/useIncidents";
 
 type CreateIncidentFormData = {
   title: string;
@@ -47,44 +47,25 @@ const initialFormData: CreateIncidentFormData = {
 export default function CreateIncident() {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
-  const { components, refreshIncidents } = useData();
-  const [submitting, setSubmitting] = useState(false);
-
+  const { data: components = [], isLoading } = useComponents();
+  const createIncident = useCreateIncident();
+  const { isPending } = createIncident;
   const [formData, setFormData] =
     useState<CreateIncidentFormData>(initialFormData);
 
-
-
-  const handleSubmit = async (e: React.SubmitEvent) => {
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitting(true);
 
-    try {
-      const { components: selectedComponents, ...incidentData } = formData;
-      const newIncident = await incidentService.create(incidentData as any);
-
-      if (selectedComponents && selectedComponents.length > 0) {
-        try {
-          await incidentService.addComponents(newIncident.id, selectedComponents);
-          showAlert("Incident created successfully!", "success");
-        } catch (junctionError: any) {
-          console.error("Error linking components:", junctionError.message);
-          showAlert(
-            "Incident created, but components failed to link.",
-            "warning",
-          );
-        }
-      } else {
+    createIncident.mutate(formData, {
+      onSuccess: () => {
         showAlert("Incident created successfully!", "success");
-      }
+        setFormData(initialFormData);
+      },
 
-      await refreshIncidents();
-      setFormData(initialFormData);
-    } catch (incidentError: any) {
-      showAlert(incidentError.message || "Failed to create incident", "error");
-    } finally {
-      setSubmitting(false);
-    }
+      onError: (error) => {
+        showAlert(error.message || "Failed to create incident", "error");
+      },
+    });
   };
 
   const toggleComponent = (componentId: string) => {
@@ -198,7 +179,7 @@ export default function CreateIncident() {
                 >
                   Affected Components
                 </FormLabel>
-                {false ? (
+                {isLoading ? (
                   <LoadingState message="Loading Components..." />
                 ) : (
                   <FormGroup>
@@ -236,10 +217,10 @@ export default function CreateIncident() {
                 <Button
                   type="submit"
                   variant="contained"
-                  disabled={submitting}
+                  disabled={isPending}
                   sx={{ px: 4 }}
                 >
-                  {submitting ? "Creating..." : "Create Incident"}
+                  {isPending ? "Creating..." : "Create Incident"}
                 </Button>
                 <Button
                   variant="outlined"

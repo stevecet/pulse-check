@@ -14,26 +14,26 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useData } from "../../hooks/useData";
 import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { Header } from "../../components/Header";
 import { LoadingState } from "../../components/LoadingState";
 import { formatDate } from "../../lib/formatDate";
+import { useIncidents } from "../../hooks/useIncidents";
+import type { Incident } from "../../lib/types";
 
 export default function Incident() {
   const navigate = useNavigate();
-  const { incidents, loading } = useData();
+  const { data: incidents = [], isLoading } = useIncidents();
   const [selectedButton, setSelectedButton] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 6;
 
-
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const filteredIncidents = useMemo(() => {
-    return incidents.filter((incident) => {
+    return incidents.filter((incident: Incident) => {
       const matchesFilter =
         selectedButton === "all" ||
         incident.status.toLowerCase() === selectedButton.toLowerCase();
@@ -48,7 +48,10 @@ export default function Incident() {
     });
   }, [incidents, selectedButton, normalizedSearchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredIncidents.length / pageSize));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredIncidents.length / pageSize),
+  );
   const currentPage = Math.min(page, totalPages);
   const paginatedIncidents = filteredIncidents.slice(
     (currentPage - 1) * pageSize,
@@ -147,7 +150,7 @@ export default function Incident() {
         />
       </Box>
 
-      {loading ? (
+      {isLoading ? (
         <LoadingState message="Loading Incidents..." />
       ) : (
         <Stack spacing={2} marginBottom={3}>
@@ -156,7 +159,7 @@ export default function Incident() {
               <Typography color="text.secondary">No incidents found</Typography>
             </Card>
           ) : (
-            paginatedIncidents.map((incident) => (
+            paginatedIncidents.map((incident: Incident) => (
               <Card
                 key={incident.id}
                 variant="outlined"
@@ -231,7 +234,7 @@ export default function Incident() {
           )}
         </Stack>
       )}
-      {!loading && filteredIncidents.length > pageSize && (
+      {!isLoading && filteredIncidents.length > pageSize && (
         <Stack alignItems="end" sx={{ mb: 3 }}>
           <Pagination
             count={totalPages}

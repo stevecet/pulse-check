@@ -88,7 +88,7 @@ export default function IncidentUpdates({
 
   return (
     <Box>
-      <Box sx={{ mt: 4 }}>
+      <Box sx={{ my: 2 }}>
         <Paper sx={{ p: 2, bgcolor: "grey.50" }}>
           <Stack direction="row" spacing={2}>
             <TextField

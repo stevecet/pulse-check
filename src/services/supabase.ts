@@ -11,7 +11,6 @@ export const supabaseApi = axios.create({
   },
 });
 
-// Request interceptor for Auth
 supabaseApi.interceptors.request.use((config) => {
   const sessionString = localStorage.getItem("supabase-session");
   if (sessionString) {
@@ -22,30 +21,3 @@ supabaseApi.interceptors.request.use((config) => {
   }
   return config;
 });
-
-// Global response error handler
-supabaseApi.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // Handle 401 Unauthorized (token expired)
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      // Refresh logic would go here
-    }
-
-    const errorMessage =
-      error.response?.data?.error_description ||
-      error.response?.data?.message ||
-      error.message;
-
-    console.error("Supabase API Error:", errorMessage);
-    
-    return Promise.reject({
-      message: errorMessage,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
-  },
-);

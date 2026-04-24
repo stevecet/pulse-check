@@ -18,12 +18,16 @@ export const componentService = {
   },
 
   async update(id: string, payload: Partial<Component>) {
-    const { data } = await supabaseApi.patch(`/rest/v1/components?id=eq.${id}`, payload, {
-      headers: {
-        Prefer: "return=representation",
-        Accept: "application/vnd.pgrst.object+json",
+    const { data } = await supabaseApi.patch(
+      `/rest/v1/components?id=eq.${id}`,
+      payload,
+      {
+        headers: {
+          Prefer: "return=representation",
+          Accept: "application/vnd.pgrst.object+json",
+        },
       },
-    });
+    );
     return data;
   },
 

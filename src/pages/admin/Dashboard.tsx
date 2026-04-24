@@ -11,16 +11,21 @@ import {
   Typography,
 } from "@mui/material";
 import { Header } from "../../components/Header";
-import { useData } from "../../hooks/useData";
+import { useComponents } from "../../hooks/useComponents";
+import { useIncidents } from "../../hooks/useIncidents";
 
 export default function AdminDashboard() {
-  const { incidents, components, loading } = useData();
+  const { data: components = [] } = useComponents();
+  const { data: incidents = [], isLoading } = useIncidents();
 
   const incidentCount = incidents.length;
-  const activeIncidentCount = incidents.filter((i) => i.status === "processing").length;
+  const activeIncidentCount = incidents.filter(
+    (i: { status: string }) => i.status === "processing",
+  ).length;
   const componentCount = components.length;
-  const operationalComponentCount = components.filter((i) => i.status === "operational").length;
-
+  const operationalComponentCount = components.filter(
+    (i: { status: string }) => i.status === "operational",
+  ).length;
 
   const dashboardCount = [
     {
@@ -56,7 +61,7 @@ export default function AdminDashboard() {
                   gutterBottom
                   sx={{ color: "text.secondary", fontSize: 20, ml: 2 }}
                 >
-                  {loading ? (
+                  {isLoading ? (
                     <Skeleton variant="circular" width={40} height={40} />
                   ) : (
                     item.count

@@ -9,14 +9,16 @@ export const incidentService = {
 
   async getByIdWithComponents(id: string) {
     const selectStr = "*,incident_components(component:components(*))";
-    const { data } = await supabaseApi.get(
-      `/rest/v1/incidents?id=eq.${id}&select=${encodeURIComponent(selectStr)}`,
-      {
-        headers: {
-          Accept: "application/vnd.pgrst.object+json",
-        },
+
+    const { data } = await supabaseApi.get(`/rest/v1/incidents`, {
+      params: {
+        id: `eq.${id}`,
+        select: selectStr,
       },
-    );
+      headers: {
+        Accept: "application/vnd.pgrst.object+json",
+      },
+    });
     return data;
   },
 
@@ -31,12 +33,16 @@ export const incidentService = {
   },
 
   async update(id: string, payload: Incident) {
-    const { data } = await supabaseApi.patch(`/rest/v1/incidents?id=eq.${id}`, payload, {
-      headers: {
-        Prefer: "return=representation",
-        Accept: "application/vnd.pgrst.object+json",
+    const { data } = await supabaseApi.patch(
+      `/rest/v1/incidents?id=eq.${id}`,
+      payload,
+      {
+        headers: {
+          Prefer: "return=representation",
+          Accept: "application/vnd.pgrst.object+json",
+        },
       },
-    });
+    );
     return data;
   },
 
@@ -51,16 +57,22 @@ export const incidentService = {
       incident_id: incidentId,
       component_id: componentId,
     }));
-    const { data } = await supabaseApi.post("/rest/v1/incident_components", payload, {
-      headers: {
-        Prefer: "return=representation",
+    const { data } = await supabaseApi.post(
+      "/rest/v1/incident_components",
+      payload,
+      {
+        headers: {
+          Prefer: "return=representation",
+        },
       },
-    });
+    );
     return data;
   },
 
   async removeComponents(incidentId: string) {
-    await supabaseApi.delete(`/rest/v1/incident_components?incident_id=eq.${incidentId}`);
+    await supabaseApi.delete(
+      `/rest/v1/incident_components?incident_id=eq.${incidentId}`,
+    );
     return true;
   },
 

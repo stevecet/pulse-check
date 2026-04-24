@@ -10,11 +10,11 @@ import {
 import { StatusCard } from "../StatusCard";
 import { EventCard } from "../EventCard";
 import { LoadingState } from "../LoadingState";
-import { useData } from "../../hooks/useData";
+import { useComponents } from "../../hooks/useComponents";
 
 export default function StatusOverview() {
   const [search, setSearch] = useState("");
-  const { components, loading } = useData();
+  const { data: components = [], isLoading } = useComponents();
 
   const filteredComponents = components.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
@@ -24,7 +24,7 @@ export default function StatusOverview() {
     (c) => c.status.toLowerCase() !== "operational",
   );
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingState message="Loading events" />;
   }
 

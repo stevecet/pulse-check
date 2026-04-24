@@ -17,13 +17,13 @@ import {
   InputAdornment,
 } from "@mui/material";
 import { Add, Close, Delete, Edit, Search } from "@mui/icons-material";
-import { useData } from "../../hooks/useData";
 import { Header } from "../../components/Header";
 import { useAlert } from "../../hooks/useAlert";
 import { LoadingState } from "../../components/LoadingState";
 import DeleteDialog from "../../components/DeleteDialog";
 import { componentService } from "../../services/componentService";
 import type { Component, ComponentStatus } from "../../lib/types";
+import { useComponents, useCreateComponent } from "../../hooks/useComponents";
 
 type ComponentFormData = {
   name: string;
@@ -39,7 +39,8 @@ const initialFormData: ComponentFormData = {
 
 export default function Components() {
   const { showAlert } = useAlert();
-  const { components, loading, refreshComponents } = useData();
+  const { data: components = [], isLoading, refetch } = useComponents();
+  const createComponent = useCreateComponent();
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -50,22 +51,20 @@ export default function Components() {
   const [page, setPage] = useState(1);
   const pageSize = 6;
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
-    setSubmitting(true);
 
-    try {
-      await componentService.create(formData);
-      await refreshComponents();
-      showAlert("Component created successfully!", "success");
-      setFormData(initialFormData);
-      setShowForm(false);
-    } catch (error) {
-      console.error("Error creating component:", error);
-      showAlert("Failed to create component", "error");
-    } finally {
-      setSubmitting(false);
-    }
+    createComponent.mutate(formData, {
+      onSuccess: () => {
+        showAlert("Component created successfully!", "success");
+        setFormData(initialFormData);
+        setShowForm(false);
+      },
+      onError: (error) => {
+        console.error("Error creating component:", error);
+        showAlert("Failed to create component", "error");
+      },
+    });
   };
 
   const startEditing = (component: Component) => {
@@ -96,7 +95,7 @@ export default function Components() {
         description,
         status,
       });
-      await refreshComponents();
+      await refetch();
 
       showAlert("Component updated successfully!", "success");
       setEditingId(null);
@@ -112,7 +111,7 @@ export default function Components() {
   const handleDelete = async () => {
     try {
       await componentService.delete(deleteTarget);
-      await refreshComponents();
+      await refetch();
       showAlert("Component permanently deleted", "info");
     } catch (error) {
       console.error("Error creating component:", error);
@@ -255,7 +254,7 @@ export default function Components() {
         </Card>
       )}
       <Stack spacing={2} marginBottom={3}>
-        {loading ? (
+        {isLoading ? (
           <LoadingState message="Loading components..." />
         ) : (
           <>
@@ -302,9 +301,9 @@ export default function Components() {
                                 setEditData((prev) =>
                                   prev
                                     ? {
-                                        ...prev,
-                                        name: e.target.value,
-                                      }
+                                      ...prev,
+                                      name: e.target.value,
+                                    }
                                     : prev,
                                 )
                               }
@@ -319,9 +318,9 @@ export default function Components() {
                                 setEditData((prev) =>
                                   prev
                                     ? {
-                                        ...prev,
-                                        description: e.target.value,
-                                      }
+                                      ...prev,
+                                      description: e.target.value,
+                                    }
                                     : prev,
                                 )
                               }
@@ -336,10 +335,10 @@ export default function Components() {
                                 setEditData((prev) =>
                                   prev
                                     ? {
-                                        ...prev,
-                                        status: e.target
-                                          .value as ComponentStatus,
-                                      }
+                                      ...prev,
+                                      status: e.target
+                                        .value as ComponentStatus,
+                                    }
                                     : prev,
                                 )
                               }
@@ -429,7 +428,7 @@ export default function Components() {
           </>
         )}
       </Stack>
-      {!loading && filteredComponents.length > pageSize && (
+      {!isLoading && filteredComponents.length > pageSize && (
         <Stack alignItems="end" sx={{ mb: 3 }}>
           <Pagination
             count={totalPages}
